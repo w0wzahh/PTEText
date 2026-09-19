@@ -5,25 +5,31 @@ and adjust as a group. Everyone codes; roles just decide who owns what.
 
 | # | Member | Role | Owns |
 |---|--------|------|------|
-| 1 | _TBD_ | **Project lead / integrator** | merges PRs, keeps `main` green, release tags |
+| 1 | w0wzahh | **Project lead / quality check** | reviews + merges PRs, keeps `main` green, demo script |
 | 2 | _TBD_ | **DBA — users DB** | `ptetext_users` schema, `UserDao`, `SessionDao` |
 | 3 | _TBD_ | **DBA — chat DB** | `ptetext_chat` schema, `ConversationDao`, `MessageDao` |
 | 4 | _TBD_ | **DBA — system DB** | `ptetext_system` schema, `ActivityLogDao`, `AttachmentDao` |
 | 5 | _TBD_ | **Service layer** | `AuthService`, `ChatService`, transactions, cross-DB logic |
 | 6 | _TBD_ | **UI / UX** | `ConsoleApp`, menus, message formatting, error messages |
-| 7 | _TBD_ | **Docs & testing** | keeps `docs/` current, test plan, demo script |
-| 8 | _TBD_ | **DevOps / tooling** | `pom.xml`, `scripts/`, GitHub repo settings, helping everyone build |
+| 7 | _TBD_ | **Docs & testing** | keeps `docs/` current, test plan |
+| 8 | _TBD_ | **DevOps / tooling** | `pom.xml`, `scripts/`, helping everyone build |
 
-## Suggested feature backlog (pick your ticket)
+## The backlog — pick your issue
 
-- [ ] Edit / soft-delete a message (`edited_at`, `is_deleted` columns exist)
-- [ ] Read receipts table in `ptetext_chat`
-- [ ] Real file upload for attachments (store bytes under `data/`, path in DB)
-- [ ] Search messages (`LIKE` query + index discussion)
-- [ ] Password change + salt regeneration
-- [ ] Swing or JavaFX GUI on top of the existing services
-- [ ] Socket server for push delivery instead of `/refresh`
-- [ ] Switch hashing to BCrypt
+The remaining work lives as GitHub Issues, one per feature. Claim one by
+assigning yourself, or swap with a teammate — just don't leave it unclaimed.
+
+- #1 Edit + soft-delete messages
+- #2 Read receipts
+- #3 Real file upload for attachments
+- #4 Search messages
+- #5 Change password flow
+- #6 GUI client (Swing/JavaFX)
+- #7 Switch hashing to BCrypt
+- #8 Socket server for live delivery (stretch goal — pair up)
+
+The core (auth, DMs, group chats, contacts, audit log, attachments metadata)
+is already built and demoable — the issues are what's left for the team.
 
 ## Ground rules
 

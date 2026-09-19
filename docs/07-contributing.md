@@ -1,5 +1,21 @@
 # PTEText — Contributing
 
+## Getting access (first time)
+
+1. Make a GitHub account if you don't have one and send **w0wzahh** your username.
+2. Accept the collaborator invite (check your email, or
+   github.com/notifications).
+3. Install Git, then clone:
+
+   ```
+   git clone https://github.com/w0wzahh/PTEText.git
+   cd PTEText
+   ```
+
+4. Follow [04-setup-guide.md](04-setup-guide.md) to get MySQL + the app running.
+5. Claim an issue from the repo's Issues tab before you start coding — no
+   double-booking features.
+
 ## Git workflow
 
 1. `git pull` on `main` before starting anything.
