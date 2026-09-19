@@ -1,0 +1,22 @@
+# Build output
+target/
+*.class
+*.jar
+dependency-reduced-pom.xml
+
+# Local database credentials (copy config/db.example.properties -> config/db.properties)
+config/db.properties
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+nbproject/
+nbactions.xml
+
+# OS
+.DS_Store
+Thumbs.db
