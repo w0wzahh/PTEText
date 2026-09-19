@@ -2,7 +2,7 @@ package com.ptetext.model;
 
 import java.sql.Timestamp;
 
-/** A registered PTEText account (ptetext_users.users). */
+/** A registered account (ptetext_users.users). No secrets in here. */
 public record User(
         int userId,
         String username,

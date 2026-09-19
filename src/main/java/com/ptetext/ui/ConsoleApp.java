@@ -26,11 +26,9 @@ import java.util.Optional;
 import java.util.Scanner;
 
 /**
- * Console front-end for PTEText.
- *
- * The app keeps no local state - every screen reads fresh data from MySQL, so
- * two instances running side by side can message each other (use /refresh or
- * just send a message to pull the newest rows).
+ * All the menus. Keeps zero local state — every screen re-reads MySQL,
+ * so two instances side by side can actually chat (smash /refresh).
+ * TODO(team): this wants to be a real GUI eventually — see docs/05 for the backlog
  */
 public class ConsoleApp {
 

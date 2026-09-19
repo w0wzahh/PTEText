@@ -10,12 +10,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
-/**
- * Data access for ptetext_users.sessions.
- */
+/** ptetext_users.sessions — login tokens. */
 public class SessionDao {
 
-    /** Sessions stay valid for 12 hours. */
+    /** Logins self-destruct after 12 hours. */
     private static final int SESSION_HOURS = 12;
 
     private final ConnectionFactory db;
@@ -24,7 +22,7 @@ public class SessionDao {
         this.db = db;
     }
 
-    /** Creates a new login session and returns its token (UUID). */
+    /** Mints a UUID token and stores it. */
     public String createSession(int userId) throws SQLException {
         String token = UUID.randomUUID().toString();
         String sql = "INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)";
@@ -38,7 +36,7 @@ public class SessionDao {
         return token;
     }
 
-    /** Marks a session invalid (logout). */
+    /** Logout = flip is_valid to 0. Ruthless. */
     public void invalidate(String sessionId) throws SQLException {
         try (Connection conn = db.users();
              PreparedStatement ps = conn.prepareStatement(

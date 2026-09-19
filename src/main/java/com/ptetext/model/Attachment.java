@@ -2,7 +2,7 @@ package com.ptetext.model;
 
 import java.sql.Timestamp;
 
-/** Metadata about a file attached to a message (ptetext_system.attachments). */
+/** File metadata pinned to a message (ptetext_system.attachments). */
 public record Attachment(
         long attachmentId,
         long messageId,

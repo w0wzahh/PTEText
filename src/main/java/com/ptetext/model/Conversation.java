@@ -2,7 +2,7 @@ package com.ptetext.model;
 
 import java.sql.Timestamp;
 
-/** A chat conversation (ptetext_chat.conversations). */
+/** A chat (ptetext_chat.conversations). title == null means it's a DM. */
 public record Conversation(
         int conversationId,
         String title,

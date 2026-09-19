@@ -1,8 +1,6 @@
 -- ============================================================================
--- PTEText - Database setup
--- Creates the three databases and all tables.
--- Run with:  mysql -u root < sql/01_create_databases.sql
--- Or paste into phpMyAdmin -> SQL tab.
+-- PTEText schema — run this FIRST, then 02_seed_data.sql
+--   mysql -u root < sql/01_create_databases.sql   (or paste into phpMyAdmin)
 -- ============================================================================
 
 CREATE DATABASE IF NOT EXISTS ptetext_users
@@ -12,9 +10,7 @@ CREATE DATABASE IF NOT EXISTS ptetext_chat
 CREATE DATABASE IF NOT EXISTS ptetext_system
     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- ============================================================================
--- DATABASE 1: ptetext_users  (identity: accounts, contacts, sessions)
--- ============================================================================
+-- DATABASE 1: ptetext_users — who are you and can you prove it
 USE ptetext_users;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -46,9 +42,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
--- ============================================================================
--- DATABASE 2: ptetext_chat  (messaging: conversations, members, messages)
--- ============================================================================
+-- DATABASE 2: ptetext_chat — the actual talking part
 USE ptetext_chat;
 
 CREATE TABLE IF NOT EXISTS conversations (
@@ -82,9 +76,7 @@ CREATE TABLE IF NOT EXISTS messages (
     INDEX idx_messages_conv_time (conversation_id, sent_at)
 );
 
--- ============================================================================
--- DATABASE 3: ptetext_system  (operations: audit trail, file metadata)
--- ============================================================================
+-- DATABASE 3: ptetext_system — receipts (audit log + file metadata)
 USE ptetext_system;
 
 CREATE TABLE IF NOT EXISTS activity_log (

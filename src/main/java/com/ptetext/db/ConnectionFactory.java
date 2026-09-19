@@ -7,12 +7,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Central place that hands out JDBC connections.
- *
- * PTEText uses THREE separate databases (see docs/02-architecture.md):
- *   - users()   -> ptetext_users   (accounts, contacts, sessions)
- *   - chat()    -> ptetext_chat    (conversations, participants, messages)
- *   - system()  -> ptetext_system  (activity log, attachment metadata)
+ * The ONE place that knows the three database names:
+ *   users()  -> ptetext_users   (accounts, contacts, sessions)
+ *   chat()   -> ptetext_chat    (conversations, participants, messages)
+ *   system() -> ptetext_system  (activity log, attachment metadata)
+ * Need a fourth database someday? Add a method HERE, don't freestyle URLs.
  */
 public final class ConnectionFactory {
 
@@ -29,25 +28,19 @@ public final class ConnectionFactory {
         return DriverManager.getConnection(url, config.getUser(), config.getPassword());
     }
 
-    /** Connection to ptetext_users. */
     public Connection users() throws SQLException {
         return open(config.getUsersDb());
     }
 
-    /** Connection to ptetext_chat. */
     public Connection chat() throws SQLException {
         return open(config.getChatDb());
     }
 
-    /** Connection to ptetext_system. */
     public Connection system() throws SQLException {
         return open(config.getSystemDb());
     }
 
-    /**
-     * Checks connectivity to all three databases.
-     * @return status line per database, e.g. "ptetext_users: OK"
-     */
+    /** Pings all three DBs at startup so we can flex (or panic) early. */
     public String healthCheck() {
         StringBuilder sb = new StringBuilder();
         check(sb, "users", config.getUsersDb());

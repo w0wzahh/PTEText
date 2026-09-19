@@ -16,19 +16,16 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Messaging logic.
- *
- * This is where the three databases meet: conversations/messages live in
- * ptetext_chat, display names come from ptetext_users, and every action is
- * audited in ptetext_system.
+ * Where all three databases meet: chat rows in ptetext_chat, names from
+ * ptetext_users, receipts in ptetext_system.
  */
 public class ChatService {
 
-    /** A conversation as shown in the UI list. */
+    /** What the menu shows for one conversation. */
     public record ConversationSummary(int conversationId, String label, boolean group) {
     }
 
-    /** A message together with the resolved sender display name. */
+    /** A message plus its sender's display name (resolved across DBs). */
     public record ChatMessage(long messageId, String senderName, String body,
                               java.sql.Timestamp sentAt) {
     }
@@ -48,7 +45,7 @@ public class ChatService {
         this.logDao = logDao;
     }
 
-    /** Returns the existing DM between the two users, or creates a new one. */
+    /** Existing DM gets reused — we don't do duplicate chats here. */
     public int openOrCreateDirectChat(int me, int otherUserId) throws SQLException {
         Optional<Integer> existing = conversationDao.findDirectConversation(me, otherUserId);
         if (existing.isPresent()) {
@@ -57,7 +54,7 @@ public class ChatService {
         return conversationDao.createConversation(null, false, me, List.of(me, otherUserId));
     }
 
-    /** Creates a named group conversation; creator becomes admin. */
+    /** Named group chat; creator auto-joins as admin (power move). */
     public int createGroup(String title, int creatorId, List<Integer> memberIds) throws SQLException {
         List<Integer> all = new ArrayList<>(memberIds);
         if (!all.contains(creatorId)) {
@@ -69,7 +66,7 @@ public class ChatService {
     }
 
     /**
-     * Sends a message. Verifies membership first.
+     * Sends a message — bounces you if you're not in the conversation.
      * @return the new message id
      */
     public long sendMessage(int conversationId, User sender, String body) throws SQLException {
@@ -85,10 +82,7 @@ public class ChatService {
         return id;
     }
 
-    /**
-     * Sends a message that carries a file attachment. Stores only the file
-     * metadata in ptetext_system.attachments (real file upload is a later milestone).
-     */
+    /** Sends "[attachment] name" + stores the file metadata in ptetext_system. */
     public long sendAttachment(int conversationId, User sender, String fileName, long sizeBytes)
             throws SQLException {
         long messageId = sendMessage(conversationId, sender, "[attachment] " + fileName);
@@ -98,7 +92,7 @@ public class ChatService {
         return messageId;
     }
 
-    /** Newest messages of a conversation with sender names resolved. */
+    /** Newest messages with sender names resolved from the users DB. */
     public List<ChatMessage> getMessages(int conversationId, int limit) throws SQLException {
         List<Message> messages = messageDao.listRecent(conversationId, limit);
         List<Integer> senderIds = messages.stream().map(Message::senderId).distinct().toList();
@@ -110,7 +104,7 @@ public class ChatService {
                 .toList();
     }
 
-    /** Conversation list for the main menu, with a readable label for each. */
+    /** The main-menu conversation list, with readable labels. */
     public List<ConversationSummary> listConversations(int userId) throws SQLException {
         List<ConversationSummary> summaries = new ArrayList<>();
         for (Conversation c : conversationDao.listForUser(userId)) {
@@ -120,10 +114,7 @@ public class ChatService {
         return summaries;
     }
 
-    /**
-     * Readable name for a conversation: the title for groups, or the other
-     * person's display name for a direct message.
-     */
+    /** Groups get their title; DMs get the other person's name. */
     public String labelFor(Conversation c, int viewerId) throws SQLException {
         if (c.group()) {
             return c.title() != null ? c.title() : "Group #" + c.conversationId();

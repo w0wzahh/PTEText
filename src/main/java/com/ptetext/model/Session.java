@@ -1,5 +1,5 @@
 package com.ptetext.model;
 
-/** An active login session (returned by AuthService.login). */
+/** A live login — the token plus who it belongs to. */
 public record Session(String sessionId, User user) {
 }

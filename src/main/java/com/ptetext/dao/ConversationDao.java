@@ -12,9 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Data access for ptetext_chat.conversations and conversation_participants.
- */
+/** ptetext_chat — conversations and who's allowed in them. */
 public class ConversationDao {
 
     private final ConnectionFactory db;
@@ -23,10 +21,7 @@ public class ConversationDao {
         this.db = db;
     }
 
-    /**
-     * Creates a conversation and its participant rows in ONE transaction.
-     * Returns the new conversation id.
-     */
+    /** Conversation + participants in ONE transaction — half-made chats are illegal. */
     public int createConversation(String title, boolean group, int createdBy, List<Integer> memberIds)
             throws SQLException {
         try (Connection conn = db.chat()) {
@@ -67,10 +62,7 @@ public class ConversationDao {
         }
     }
 
-    /**
-     * Finds the existing direct (non-group) conversation between two users,
-     * so we never create a duplicate DM.
-     */
+    /** Reuses an existing DM instead of spawning a duplicate one. */
     public Optional<Integer> findDirectConversation(int userA, int userB) throws SQLException {
         String sql = "SELECT p1.conversation_id "
                 + "FROM conversation_participants p1 "
@@ -88,7 +80,7 @@ public class ConversationDao {
         }
     }
 
-    /** All conversations a user belongs to, newest activity first. */
+    /** Everything this user is part of. */
     public List<Conversation> listForUser(int userId) throws SQLException {
         String sql = "SELECT c.conversation_id, c.title, c.is_group, c.created_by, c.created_at "
                 + "FROM conversations c "

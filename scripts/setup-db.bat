@@ -1,9 +1,7 @@
 @echo off
-REM ==========================================================================
-REM  PTEText - database setup (XAMPP on Windows)
-REM  Creates the three databases and loads demo data.
-REM  Edit the MYSQL path below if XAMPP is installed somewhere else.
-REM ==========================================================================
+REM PTEText database setup — XAMPP's MySQL must be running, obviously.
+REM Double-click, read the output, celebrate.
+REM If XAMPP isn't in C:\xampp, edit the MYSQL path below.
 setlocal
 
 set MYSQL=C:\xampp\mysql\bin\mysql.exe
@@ -11,7 +9,7 @@ set SQLDIR=%~dp0..\sql
 
 if not exist "%MYSQL%" (
     echo Could not find mysql.exe at %MYSQL%
-    echo Edit this script or run the SQL files in phpMyAdmin instead.
+    echo Either fix the path above or run the sql/ files in phpMyAdmin yourself.
     pause
     exit /b 1
 )
@@ -30,6 +28,6 @@ exit /b 0
 
 :fail
 echo.
-echo Setup failed. Is MySQL running in the XAMPP control panel?
+echo Setup failed. Is MySQL actually running in the XAMPP control panel? :)
 pause
 exit /b 1

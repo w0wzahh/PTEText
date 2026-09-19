@@ -11,10 +11,8 @@ import java.sql.SQLException;
 import java.util.Optional;
 
 /**
- * Registration, login and logout.
- *
- * Touches TWO databases per login: ptetext_users (credentials + session row)
- * and ptetext_system (audit trail entry).
+ * Register / login / logout. Every login hits two databases: credentials +
+ * session row in ptetext_users, audit entry in ptetext_system.
  */
 public class AuthService {
 
@@ -28,10 +26,7 @@ public class AuthService {
         this.logDao = logDao;
     }
 
-    /**
-     * Registers a new account.
-     * @throws IllegalArgumentException if the input is invalid or the username is taken
-     */
+    /** @throws IllegalArgumentException on bad input or a taken username */
     public User register(String username, String password, String displayName) throws SQLException {
         if (username == null || username.isBlank() || username.length() > 50) {
             throw new IllegalArgumentException("Username must be 1-50 characters.");
@@ -55,10 +50,7 @@ public class AuthService {
         return user;
     }
 
-    /**
-     * Verifies credentials and opens a session.
-     * @return the session, or empty if the credentials are wrong
-     */
+    /** @return a session on success, empty when the password vibes are off */
     public Optional<Session> login(String username, String password) throws SQLException {
         Optional<UserDao.Credentials> creds = userDao.findCredentialsByUsername(username);
         if (creds.isEmpty()

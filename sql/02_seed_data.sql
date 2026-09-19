@@ -1,9 +1,7 @@
 -- ============================================================================
--- PTEText - Seed data
--- Demo accounts and sample conversations so the app works out of the box.
--- Every demo account uses the password:  password123
--- Run AFTER 01_create_databases.sql:
+-- PTEText demo data — run AFTER 01_create_databases.sql
 --   mysql -u root < sql/02_seed_data.sql
+-- Every account's password is: password123   (yes, all of them, it's demo data)
 -- ============================================================================
 
 USE ptetext_users;

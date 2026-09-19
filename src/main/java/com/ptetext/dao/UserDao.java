@@ -14,12 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Data access for ptetext_users.users.
- */
+/** ptetext_users.users — accounts and the secrets that guard them. */
 public class UserDao {
 
-    /** A user row plus the credential fields needed for login. */
+    /** A user row plus the hash + salt needed to check a password. */
     public record Credentials(User user, String passwordHash, String salt) {
     }
 
@@ -29,7 +27,7 @@ public class UserDao {
         this.db = db;
     }
 
-    /** Inserts a new user and returns it with the generated id. */
+    /** Inserts a user and hands it back with its shiny new id. */
     public User create(String username, String passwordHash, String salt, String displayName)
             throws SQLException {
         String sql = "INSERT INTO users (username, password_hash, salt, display_name) VALUES (?, ?, ?, ?)";
@@ -90,7 +88,7 @@ public class UserDao {
         return users;
     }
 
-    /** Batch lookup used to resolve sender names for messages (avoids N+1 queries). */
+    /** Batch name lookup — one query, not N. Chat screens say thanks. */
     public Map<Integer, String> displayNamesFor(List<Integer> userIds) throws SQLException {
         Map<Integer, String> names = new HashMap<>();
         if (userIds.isEmpty()) {

@@ -2,12 +2,7 @@ package com.ptetext;
 
 import com.ptetext.ui.ConsoleApp;
 
-/**
- * Entry point for PTEText.
- *
- * Run with:  mvn compile exec:java
- * Or build the jar with:  mvn package  ->  java -jar target/ptetext-*.jar
- */
+/** The big green START button. `mvn compile exec:java` and off you go. */
 public class Main {
 
     public static void main(String[] args) {

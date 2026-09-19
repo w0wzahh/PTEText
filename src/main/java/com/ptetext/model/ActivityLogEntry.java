@@ -2,7 +2,7 @@ package com.ptetext.model;
 
 import java.sql.Timestamp;
 
-/** One row of the audit trail (ptetext_system.activity_log). */
+/** One "who did what, when" row (ptetext_system.activity_log). */
 public record ActivityLogEntry(
         long logId,
         Integer userId,

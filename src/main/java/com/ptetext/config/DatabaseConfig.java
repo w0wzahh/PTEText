@@ -7,11 +7,8 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 /**
- * Database connection settings.
- *
- * Reads config/db.properties if it exists, otherwise falls back to the
- * XAMPP defaults (localhost:3306, user "root", empty password).
- * Copy config/db.example.properties to config/db.properties to customize.
+ * DB credentials. Defaults to stock XAMPP (root, no password) so it just
+ * works — drop a config/db.properties file in to override anything.
  */
 public final class DatabaseConfig {
 

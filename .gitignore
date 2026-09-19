@@ -1,13 +1,14 @@
-# Build output
+# build output — target/ is a crime scene, don't commit it
 target/
 *.class
 *.jar
 dependency-reduced-pom.xml
 
-# Local database credentials (copy config/db.example.properties -> config/db.properties)
+# your db password lives in here — committing it = free db access for strangers :skull:
+# (copy config/db.example.properties -> config/db.properties)
 config/db.properties
 
-# IDEs
+# IDEs (please do not touch this section unless you wanna push the entire IDE related settings and everything to main :sob:)
 .idea/
 *.iml
 .vscode/
@@ -17,6 +18,6 @@ config/db.properties
 nbproject/
 nbactions.xml
 
-# OS
+# OS junk nobody asked for
 .DS_Store
 Thumbs.db

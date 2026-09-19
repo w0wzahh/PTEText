@@ -10,9 +10,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Data access for ptetext_users.contacts.
- */
+/** ptetext_users.contacts — the friends list, basically. */
 public class ContactDao {
 
     private final ConnectionFactory db;
@@ -33,7 +31,7 @@ public class ContactDao {
         }
     }
 
-    /** Lists a user's contacts, joined with the users table for names. */
+    /** Joins users so we return names, not just mysterious numbers. */
     public List<Contact> listContacts(int ownerId) throws SQLException {
         String sql = "SELECT c.owner_id, c.contact_id, c.nickname, c.added_at, "
                 + "u.username, u.display_name "

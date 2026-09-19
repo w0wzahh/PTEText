@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Data access for ptetext_system.attachments.
- * Only file metadata is stored - actual file storage is a future milestone.
+ * ptetext_system.attachments — metadata only, no actual bytes yet.
+ * TODO(team): store the real file somewhere, stored_path is sitting there empty for a reason
  */
 public class AttachmentDao {
 

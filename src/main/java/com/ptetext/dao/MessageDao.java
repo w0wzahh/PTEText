@@ -13,7 +13,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Data access for ptetext_chat.messages.
+ * ptetext_chat.messages — the actual texts.
+ * TODO(team): edit + soft-delete methods, edited_at/is_deleted are already in the schema waiting for you
  */
 public class MessageDao {
 
@@ -23,7 +24,7 @@ public class MessageDao {
         this.db = db;
     }
 
-    /** Inserts a message and returns its generated id. */
+    /** Drops a message in, returns its generated id. */
     public long insert(int conversationId, int senderId, String body) throws SQLException {
         String sql = "INSERT INTO messages (conversation_id, sender_id, body) VALUES (?, ?, ?)";
         try (Connection conn = db.chat();
@@ -39,7 +40,7 @@ public class MessageDao {
         }
     }
 
-    /** Returns the newest {@code limit} messages of a conversation, oldest first. */
+    /** Newest {@code limit} messages, returned oldest-first for display. */
     public List<Message> listRecent(int conversationId, int limit) throws SQLException {
         String sql = "SELECT message_id, conversation_id, sender_id, body, sent_at "
                 + "FROM messages WHERE conversation_id = ? AND is_deleted = 0 "
@@ -60,7 +61,7 @@ public class MessageDao {
                 }
             }
         }
-        Collections.reverse(messages); // oldest first for display
+        Collections.reverse(messages);
         return messages;
     }
 }

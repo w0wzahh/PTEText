@@ -10,10 +10,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Data access for ptetext_system.activity_log.
- * Every important action (login, register, message sent, ...) is audited here.
- */
+/** ptetext_system.activity_log — the black box recorder. Every action lands here. */
 public class ActivityLogDao {
 
     private final ConnectionFactory db;
@@ -35,7 +32,7 @@ public class ActivityLogDao {
             ps.setString(3, details);
             ps.executeUpdate();
         } catch (SQLException e) {
-            // Auditing must never break the main feature - just warn.
+            // logging must NEVER break a feature — warn and move on
             System.err.println("Warning: could not write activity log: " + e.getMessage());
         }
     }
