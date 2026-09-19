@@ -7,19 +7,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /** ptetext_users.users — accounts and the secrets that guard them. */
 public class UserDao {
-
-    /** A user row plus the hash + salt needed to check a password. */
-    public record Credentials(User user, String passwordHash, String salt) {
-    }
 
     private final ConnectionFactory db;
 
@@ -27,53 +19,11 @@ public class UserDao {
         this.db = db;
     }
 
-    /** Inserts a user and hands it back with its shiny new id. */
-    public User create(String username, String passwordHash, String salt, String displayName)
-            throws SQLException {
-        String sql = "INSERT INTO users (username, password_hash, salt, display_name) VALUES (?, ?, ?, ?)";
-        try (Connection conn = db.users();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, username);
-            ps.setString(2, passwordHash);
-            ps.setString(3, salt);
-            ps.setString(4, displayName);
-            ps.executeUpdate();
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                keys.next();
-                return new User(keys.getInt(1), username, displayName, null, null);
-            }
-        }
-    }
-
-    public Optional<Credentials> findCredentialsByUsername(String username) throws SQLException {
-        String sql = "SELECT user_id, username, display_name, created_at, last_seen, "
-                + "password_hash, salt FROM users WHERE username = ?";
-        try (Connection conn = db.users();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    return Optional.empty();
-                }
-                User user = mapUser(rs);
-                return Optional.of(new Credentials(
-                        user, rs.getString("password_hash"), rs.getString("salt")));
-            }
-        }
-    }
-
-    public Optional<User> findById(int userId) throws SQLException {
-        String sql = "SELECT user_id, username, display_name, created_at, last_seen "
-                + "FROM users WHERE user_id = ?";
-        try (Connection conn = db.users();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? Optional.of(mapUser(rs)) : Optional.empty();
-            }
-        }
-    }
-
+    /**
+     * REFERENCE METHOD — every DAO method follows this pattern:
+     * try-with-resources connection -> PreparedStatement with ? placeholders
+     * -> map ResultSet rows to model records. Copy it.
+     */
     public List<User> findAll() throws SQLException {
         String sql = "SELECT user_id, username, display_name, created_at, last_seen "
                 + "FROM users ORDER BY username";
@@ -88,36 +38,16 @@ public class UserDao {
         return users;
     }
 
-    /** Batch name lookup — one query, not N. Chat screens say thanks. */
-    public Map<Integer, String> displayNamesFor(List<Integer> userIds) throws SQLException {
-        Map<Integer, String> names = new HashMap<>();
-        if (userIds.isEmpty()) {
-            return names;
-        }
-        String placeholders = String.join(", ", userIds.stream().map(id -> "?").toList());
-        String sql = "SELECT user_id, display_name FROM users WHERE user_id IN (" + placeholders + ")";
-        try (Connection conn = db.users();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < userIds.size(); i++) {
-                ps.setInt(i + 1, userIds.get(i));
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    names.put(rs.getInt("user_id"), rs.getString("display_name"));
-                }
-            }
-        }
-        return names;
-    }
-
-    public void updateLastSeen(int userId) throws SQLException {
-        try (Connection conn = db.users();
-             PreparedStatement ps = conn.prepareStatement(
-                     "UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE user_id = ?")) {
-            ps.setInt(1, userId);
-            ps.executeUpdate();
-        }
-    }
+    /*
+     * TODO(team) — implement these (details in the GitHub issues):
+     *
+     *   record Credentials(User user, String passwordHash, String salt) {}
+     *   Optional<Credentials> findCredentialsByUsername(String username)   -> login, issue #10
+     *   User create(String username, String hash, String salt, String displayName) -> register, issue #9
+     *   Optional<User> findById(int userId)
+     *   Map<Integer,String> displayNamesFor(List<Integer> ids)             -> sender names, issue #11
+     *   void updateLastSeen(int userId)                                    -> issue #10
+     */
 
     private User mapUser(ResultSet rs) throws SQLException {
         return new User(

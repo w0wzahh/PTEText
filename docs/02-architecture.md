@@ -48,6 +48,8 @@ AttachmentDao      system()    ptetext_system    file metadata
 
 ### One action can touch several databases
 
+(These are the target flows — the features behind them are open issues.)
+
 - **Logging in:** check password (users DB) -> create session row (users DB)
   -> write `LOGIN` in the audit log (system DB)
 - **Sending a message:** check you're in the conversation + save message
@@ -62,13 +64,12 @@ databases. Instead of cross-database keys, the service layer resolves the
 references (e.g. `UserDao.displayNamesFor()` looks up names in bulk). This
 mirrors how real systems with separate data stores work.
 
-## How chatting actually works
+## How chatting will work
 
-There's no socket server yet. Clients talk through the shared MySQL server:
-sending a message = inserting a row, reading = selecting rows. Another
-person sees your message next time they `/refresh` or send something. Two
-instances of the app can chat with each other as long as they share the
-same MySQL.
+No socket server in this design. Clients talk through the shared MySQL
+server: sending a message = inserting a row, reading = selecting rows.
+Another person sees your message next time they refresh. Two instances of
+the app can chat with each other as long as they share the same MySQL.
 
 ## Error handling (the short version)
 

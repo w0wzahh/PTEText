@@ -18,13 +18,25 @@ for that area.
 Don't know what a DBA or a DAO is? Read `docs/02-architecture.md` first —
 it's explained there.
 
-## The work that's actually left
+## The work — pick your issue
 
-The core app (login, DMs, group chats, contacts, audit log) is already built
-and demoable. Everything remaining is a GitHub Issue — go to the repo's
-**Issues** tab, pick one, assign it to yourself:
+The repo is a **skeleton**: structure, schema, and DB plumbing are done, and
+"List users" works as the reference feature (copy its pattern). All the real
+features are GitHub Issues — go to the **Issues** tab, pick one, assign it
+to yourself.
 
-- **#1** Edit + delete messages — good first issue
+**Core features (build first):**
+
+- **#9** Registration — good first issue
+- **#10** Login + sessions — good first issue
+- **#11** Direct messages — the heart of the app, medium-big
+- **#12** Group chats — easier once #11 exists
+- **#13** Contacts list — good first issue
+- **#14** Activity log + attachment metadata — makes the 3rd DB visible
+
+**Stretch goals (after core):**
+
+- **#1** Edit + delete messages
 - **#2** Read receipts
 - **#3** Real file upload for attachments
 - **#4** Search messages
@@ -34,7 +46,7 @@ and demoable. Everything remaining is a GitHub Issue — go to the repo's
 - **#8** Socket server for live delivery — hardest, pair up
 
 No issue left unclaimed — if you finish yours early, grab another or help
-someone review.
+review PRs.
 
 ## Rules
 

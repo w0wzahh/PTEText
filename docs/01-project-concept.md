@@ -30,15 +30,21 @@ Splitting data by domain isn't just for show:
 - **Security boundaries** — password hashes live in their own database,
   separate from all other data.
 
-## Implemented features (this milestone)
+## Status
 
-- Registration and login (salted SHA-256 hashing, session tokens)
-- Contact list with optional nicknames
-- Direct messages (existing DMs are reused, never duplicated)
-- Named group chats with member/admin roles
-- Attachment metadata on messages
-- Full audit trail — logins, registrations, messages, and more are recorded
-  in the third database
+The repository is a working **skeleton**: the three-database architecture,
+schema, seed data, connection layer, and domain model are in place, along
+with one end-to-end reference feature (listing users). Every remaining
+feature is a tracked GitHub Issue assigned across the team.
+
+## Features to be built (team backlog)
+
+Core: registration, login + sessions, direct messages, group chats,
+contacts, audit logging, attachment metadata (issues #9–#14).
+
+Stretch: message editing/deletion, read receipts, real file upload,
+message search, password change, Swing/JavaFX GUI, BCrypt hashing,
+socket server for live delivery (issues #1–#8).
 
 ## Technology
 
@@ -61,7 +67,5 @@ More detail: [02-architecture.md](02-architecture.md) ·
 
 ## Planned next steps
 
-Tracked as GitHub Issues on the repo — one per team member to claim:
-message editing/deletion, read receipts, real file upload, message search,
-password change, a Swing/JavaFX GUI, BCrypt hashing, and a socket server
-for live delivery.
+All tracked as GitHub Issues on the repo — one per team member to claim.
+See `docs/05-team-roles.md` for the split.

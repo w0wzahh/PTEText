@@ -5,19 +5,27 @@ import com.ptetext.dao.AttachmentDao;
 import com.ptetext.dao.ConversationDao;
 import com.ptetext.dao.MessageDao;
 import com.ptetext.dao.UserDao;
-import com.ptetext.model.Conversation;
-import com.ptetext.model.Message;
-import com.ptetext.model.User;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.sql.Timestamp;
 
 /**
- * Where all three databases meet: chat rows in ptetext_chat, names from
- * ptetext_users, receipts in ptetext_system.
+ * Messaging logic — where all three databases meet: chat rows in
+ * ptetext_chat, display names from ptetext_users, receipts in ptetext_system.
+ *
+ * TODO — issues #11, #12, #14. Intended API:
+ *
+ *   int openOrCreateDirectChat(int me, int otherUserId)
+ *       — reuse an existing DM, we don't do duplicate chats here
+ *   int createGroup(String title, int creatorId, List<Integer> memberIds)
+ *       — creator auto-joins as admin (power move), log GROUP_CREATED
+ *   long sendMessage(int conversationId, User sender, String body)
+ *       — bounce non-members (SecurityException), log MESSAGE_SENT
+ *   long sendAttachment(int conversationId, User sender, String fileName, long sizeBytes)
+ *       — sends "[attachment] name" + stores metadata in ptetext_system
+ *   List<ChatMessage> getMessages(int conversationId, int limit)
+ *       — resolve sender names via UserDao (batch lookup, not N queries)
+ *   List<ConversationSummary> listConversations(int userId)
+ *       — groups get their title, DMs get the other person's name
  */
 public class ChatService {
 
@@ -26,8 +34,7 @@ public class ChatService {
     }
 
     /** A message plus its sender's display name (resolved across DBs). */
-    public record ChatMessage(long messageId, String senderName, String body,
-                              java.sql.Timestamp sentAt) {
+    public record ChatMessage(long messageId, String senderName, String body, Timestamp sentAt) {
     }
 
     private final ConversationDao conversationDao;
@@ -43,97 +50,5 @@ public class ChatService {
         this.userDao = userDao;
         this.attachmentDao = attachmentDao;
         this.logDao = logDao;
-    }
-
-    /** Existing DM gets reused — we don't do duplicate chats here. */
-    public int openOrCreateDirectChat(int me, int otherUserId) throws SQLException {
-        Optional<Integer> existing = conversationDao.findDirectConversation(me, otherUserId);
-        if (existing.isPresent()) {
-            return existing.get();
-        }
-        return conversationDao.createConversation(null, false, me, List.of(me, otherUserId));
-    }
-
-    /** Named group chat; creator auto-joins as admin (power move). */
-    public int createGroup(String title, int creatorId, List<Integer> memberIds) throws SQLException {
-        List<Integer> all = new ArrayList<>(memberIds);
-        if (!all.contains(creatorId)) {
-            all.add(creatorId);
-        }
-        int id = conversationDao.createConversation(title, true, creatorId, all);
-        logDao.log(creatorId, "GROUP_CREATED", "Created group '" + title + "' (#" + id + ")");
-        return id;
-    }
-
-    /**
-     * Sends a message — bounces you if you're not in the conversation.
-     * @return the new message id
-     */
-    public long sendMessage(int conversationId, User sender, String body) throws SQLException {
-        if (!conversationDao.isParticipant(conversationId, sender.userId())) {
-            throw new SecurityException("You are not a member of conversation #" + conversationId);
-        }
-        if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Message body cannot be empty.");
-        }
-        long id = messageDao.insert(conversationId, sender.userId(), body.trim());
-        logDao.log(sender.userId(), "MESSAGE_SENT",
-                "Message #" + id + " -> conversation #" + conversationId);
-        return id;
-    }
-
-    /** Sends "[attachment] name" + stores the file metadata in ptetext_system. */
-    public long sendAttachment(int conversationId, User sender, String fileName, long sizeBytes)
-            throws SQLException {
-        long messageId = sendMessage(conversationId, sender, "[attachment] " + fileName);
-        attachmentDao.insert(messageId, sender.userId(), fileName, "application/octet-stream", sizeBytes);
-        logDao.log(sender.userId(), "ATTACHMENT_ADDED",
-                fileName + " attached to message #" + messageId);
-        return messageId;
-    }
-
-    /** Newest messages with sender names resolved from the users DB. */
-    public List<ChatMessage> getMessages(int conversationId, int limit) throws SQLException {
-        List<Message> messages = messageDao.listRecent(conversationId, limit);
-        List<Integer> senderIds = messages.stream().map(Message::senderId).distinct().toList();
-        Map<Integer, String> names = userDao.displayNamesFor(senderIds);
-        return messages.stream()
-                .map(m -> new ChatMessage(m.messageId(),
-                        names.getOrDefault(m.senderId(), "user#" + m.senderId()),
-                        m.body(), m.sentAt()))
-                .toList();
-    }
-
-    /** The main-menu conversation list, with readable labels. */
-    public List<ConversationSummary> listConversations(int userId) throws SQLException {
-        List<ConversationSummary> summaries = new ArrayList<>();
-        for (Conversation c : conversationDao.listForUser(userId)) {
-            summaries.add(new ConversationSummary(
-                    c.conversationId(), labelFor(c, userId), c.group()));
-        }
-        return summaries;
-    }
-
-    /** Groups get their title; DMs get the other person's name. */
-    public String labelFor(Conversation c, int viewerId) throws SQLException {
-        if (c.group()) {
-            return c.title() != null ? c.title() : "Group #" + c.conversationId();
-        }
-        for (int participantId : conversationDao.participantIds(c.conversationId())) {
-            if (participantId != viewerId) {
-                return userDao.findById(participantId)
-                        .map(User::displayName)
-                        .orElse("user#" + participantId);
-            }
-        }
-        return "Conversation #" + c.conversationId();
-    }
-
-    public List<User> listAllUsers() throws SQLException {
-        return userDao.findAll();
-    }
-
-    public boolean isParticipant(int conversationId, int userId) throws SQLException {
-        return conversationDao.isParticipant(conversationId, userId);
     }
 }
