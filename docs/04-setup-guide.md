@@ -1,66 +1,62 @@
-# PTEText — Setup Guide
+# Setup Guide — getting PTEText running on your machine
 
-Follow this once per machine. Takes about 10 minutes.
+Do this once. Takes about 10 minutes. If you get stuck, check the
+troubleshooting table at the bottom, or ask in the group chat.
 
-## 1. Install the tools
+## Step 1 — install the tools
 
-| Tool | Where | Check |
-|------|-------|-------|
-| XAMPP | <https://www.apachefriends.org/> | XAMPP Control Panel opens |
-| JDK 17+ | already on most lab PCs, or <https://adoptium.net/> | `java -version` |
-| Maven | <https://maven.apache.org/download.cgi> (or your IDE bundles it) | `mvn -version` |
-| Git | <https://git-scm.com/> | `git --version` |
+You need four things:
 
-IntelliJ IDEA / Eclipse / NetBeans all bundle Maven, so installing Maven
-separately is optional if you use an IDE.
+| Tool | What it's for | Get it | Check it works |
+|------|---------------|--------|----------------|
+| XAMPP | runs our MySQL databases | <https://www.apachefriends.org/> | the Control Panel opens |
+| Java JDK 17+ | runs the app | <https://adoptium.net/> (or it might already be installed) | `java -version` in a terminal |
+| Maven | builds the app | <https://maven.apache.org/> — **or skip this**: IntelliJ/Eclipse/NetBeans already include Maven | `mvn -version` |
+| Git | downloads + shares the code | <https://git-scm.com/> | `git --version` |
 
-## 2. Start MySQL
+## Step 2 — get the code
+
+```
+git clone https://github.com/w0wzahh/PTEText.git
+cd PTEText
+```
+
+(Accept the GitHub invite first — check your email.)
+
+## Step 3 — start the database
 
 1. Open the **XAMPP Control Panel**.
-2. Click **Start** next to **MySQL** (Apache is not needed).
-3. Optional check: click **Admin** next to MySQL — phpMyAdmin should open.
+2. Click **Start** next to **MySQL**. (Apache is NOT needed.)
+3. It should turn green. If it doesn't, see troubleshooting below.
 
-## 3. Create the databases
+## Step 4 — create the databases
 
-**Option A — script (Windows):**
+**Easy way (Windows):** double-click `scripts\setup-db.bat`.
 
-```
-scripts\setup-db.bat
-```
+**Other way (phpMyAdmin, works everywhere):**
 
-**Option B — phpMyAdmin:**
+1. Open <http://localhost/phpmyadmin> in your browser (Apache needs to be
+   running for this one — press Start next to Apache too).
+2. Click the **SQL** tab at the top.
+3. Open `sql/01_create_databases.sql` in a text editor, copy everything,
+   paste it in, press **Go**.
+4. Do the same with `sql/02_seed_data.sql`.
 
-1. Open <http://localhost/phpmyadmin> -> **SQL** tab.
-2. Paste the contents of `sql/01_create_databases.sql` -> **Go**.
-3. Paste the contents of `sql/02_seed_data.sql` -> **Go**.
+You should now see three new databases in the left sidebar:
+`ptetext_users`, `ptetext_chat`, `ptetext_system`. Click them to see the
+tables inside.
 
-You should now see `ptetext_users`, `ptetext_chat`, `ptetext_system` in the
-left sidebar.
+## Step 5 — run the app
 
-## 4. Configure credentials (only if needed)
-
-The app defaults to XAMPP's standard `root` user with an empty password.
-If your MySQL differs, copy `config/db.example.properties` to
-`config/db.properties` and edit it:
-
-```properties
-db.host=localhost
-db.port=3306
-db.user=root
-db.password=YOUR_PASSWORD
-```
-
-`config/db.properties` is git-ignored so nobody's password ends up on GitHub.
-
-## 5. Run the app
+Double-click `scripts\run.bat`, or in a terminal inside the project folder:
 
 ```
 mvn compile exec:java
 ```
 
-or double-click `scripts\run.bat`, or run `com.ptetext.Main` from your IDE.
+Or open the project in IntelliJ/Eclipse and run the `Main` class.
 
-On startup the app prints the status of all three databases:
+When it starts it checks all three databases and prints:
 
 ```
 Database status:
@@ -69,21 +65,31 @@ Database status:
   [OK]   ptetext_system
 ```
 
-If any line shows `[FAIL]`, MySQL isn't running or the database doesn't
-exist — repeat step 2/3.
+Three `[OK]`s = you're good. Any `[FAIL]` = see below.
 
-## 6. Demo data
+## Demo accounts
 
-The seed script creates six accounts, all with password `password123`:
-`alice`, `bob`, `carol`, `dave`, `erin`, `frank`. Alice and bob already have
-a DM history, and everyone is in the "Project Team" group chat.
+All of these have the password `password123`:
+`alice`, `bob`, `carol`, `dave`, `erin`, `frank`
+
+## Optional: change the database password
+
+By default the app connects as MySQL user `root` with an empty password
+(that's how XAMPP ships). If your MySQL is different:
+
+1. Copy `config/db.example.properties` -> rename the copy to
+   `config/db.properties`
+2. Edit the values inside.
+
+This file is git-ignored — your password never goes to GitHub.
 
 ## Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| `Communications link failure` | MySQL not started in XAMPP |
-| `Unknown database 'ptetext_...'` | run the SQL scripts (step 3) |
-| `Access denied for user` | set credentials in `config/db.properties` |
-| Port 3306 already in use | another MySQL is running; either use it, or change `db.port` |
-| `mvn` not recognized | use the Maven bundled with your IDE, or add Maven to PATH |
+| What you see | What it means | Fix |
+|--------------|---------------|-----|
+| `[FAIL]` on a database, `Communications link failure` | MySQL isn't running | XAMPP Control Panel -> Start MySQL |
+| `Unknown database 'ptetext_...'` | step 4 didn't happen | run the SQL scripts again |
+| `Access denied for user 'root'` | your MySQL has a password | create `config/db.properties` (see above) |
+| MySQL won't start in XAMPP, port 3306 busy | another MySQL is already running (e.g. MySQL Workbench installed its own) | either use that one instead, or stop it in Windows Services |
+| `mvn` is not recognized | Maven isn't on your PATH | use your IDE's built-in Maven, or add Maven's `bin` folder to PATH |
+| `java` is not recognized | JDK not installed / not on PATH | install from adoptium.net, reinstall with "set JAVA_HOME" checked |

@@ -1,41 +1,46 @@
-# PTEText — Team Roles
+# Team Roles — who owns what
 
-Suggested work split for the 8 team members. Names are placeholders — fill in
-and adjust as a group. Everyone codes; roles just decide who owns what.
+How we're splitting the work across the 8 of us. Fill in the names as people
+claim stuff. Everyone writes code — "owns" just means you're the go-to person
+for that area.
 
-| # | Member | Role | Owns |
-|---|--------|------|------|
-| 1 | w0wzahh | **Project lead / quality check** | reviews + merges PRs, keeps `main` green, demo script |
-| 2 | _TBD_ | **DBA — users DB** | `ptetext_users` schema, `UserDao`, `SessionDao` |
-| 3 | _TBD_ | **DBA — chat DB** | `ptetext_chat` schema, `ConversationDao`, `MessageDao` |
-| 4 | _TBD_ | **DBA — system DB** | `ptetext_system` schema, `ActivityLogDao`, `AttachmentDao` |
-| 5 | _TBD_ | **Service layer** | `AuthService`, `ChatService`, transactions, cross-DB logic |
-| 6 | _TBD_ | **UI / UX** | `ConsoleApp`, menus, message formatting, error messages |
-| 7 | _TBD_ | **Docs & testing** | keeps `docs/` current, test plan |
-| 8 | _TBD_ | **DevOps / tooling** | `pom.xml`, `scripts/`, helping everyone build |
+| # | Who | Role | Your area |
+|---|-----|------|-----------|
+| 1 | w0wzahh | **Lead / quality check** | reviews + merges everyone's PRs, keeps `main` working |
+| 2 | _TBD_ | **DBA — users DB** | `ptetext_users` tables, `UserDao`, `SessionDao` |
+| 3 | _TBD_ | **DBA — chat DB** | `ptetext_chat` tables, `ConversationDao`, `MessageDao` |
+| 4 | _TBD_ | **DBA — system DB** | `ptetext_system` tables, `ActivityLogDao`, `AttachmentDao` |
+| 5 | _TBD_ | **Service layer** | `AuthService`, `ChatService`, the logic between DBs |
+| 6 | _TBD_ | **UI** | `ConsoleApp`, menus, how things look in the terminal |
+| 7 | _TBD_ | **Docs & testing** | keeps `docs/` up to date, tests everyone's features |
+| 8 | _TBD_ | **Tooling** | `pom.xml`, `scripts/`, helps people whose build is broken |
 
-## The backlog — pick your issue
+Don't know what a DBA or a DAO is? Read `docs/02-architecture.md` first —
+it's explained there.
 
-The remaining work lives as GitHub Issues, one per feature. Claim one by
-assigning yourself, or swap with a teammate — just don't leave it unclaimed.
+## The work that's actually left
 
-- #1 Edit + soft-delete messages
-- #2 Read receipts
-- #3 Real file upload for attachments
-- #4 Search messages
-- #5 Change password flow
-- #6 GUI client (Swing/JavaFX)
-- #7 Switch hashing to BCrypt
-- #8 Socket server for live delivery (stretch goal — pair up)
+The core app (login, DMs, group chats, contacts, audit log) is already built
+and demoable. Everything remaining is a GitHub Issue — go to the repo's
+**Issues** tab, pick one, assign it to yourself:
 
-The core (auth, DMs, group chats, contacts, audit log, attachments metadata)
-is already built and demoable — the issues are what's left for the team.
+- **#1** Edit + delete messages — good first issue
+- **#2** Read receipts
+- **#3** Real file upload for attachments
+- **#4** Search messages
+- **#5** Change password flow
+- **#6** GUI client (Swing/JavaFX) — big one
+- **#7** BCrypt password hashing — small but important
+- **#8** Socket server for live delivery — hardest, pair up
 
-## Ground rules
+No issue left unclaimed — if you finish yours early, grab another or help
+someone review.
 
-1. Nobody pushes straight to `main` — branch + PR, one teammate reviews.
-   See [07-contributing.md](07-contributing.md).
-2. Update the matching doc when you change behaviour or schema.
-3. Schema changes go in a new numbered file `sql/03_*.sql`, `sql/04_*.sql`
-   etc. — never edit a merged migration.
-4. Run the app end-to-end before opening a PR.
+## Rules
+
+1. No pushing to `main` — branch + PR, w0wzahh reviews.
+   (How: `docs/07-contributing.md`, explains git from zero.)
+2. Changed behaviour or schema? Update the matching doc in the same PR.
+3. Schema changes = new numbered file in `sql/` (`03_*.sql`, `04_*.sql`).
+   Never edit an old one — everyone's local DB was built from it.
+4. Actually run the app before opening a PR.

@@ -1,67 +1,67 @@
 # PTEText — Project Concept
 
-## Overview
+*(This is the proposal document — the "what and why" we show the professor.)*
+
+## What it is
 
 **PTEText** is a messaging application written in Java. Users can register,
-log in, manage a contact list, send direct messages, create group chats, and
-attach file metadata to messages.
+log in, keep a contact list, send direct messages, create group chats, and
+attach files to messages.
 
-The defining characteristic of the project is that it persists data across
-**three separate databases**, demonstrating how a single application can work
-with multiple data stores, each responsible for a distinct domain.
+The key design decision: the application stores its data in **three separate
+MySQL databases**, each responsible for one domain. This demonstrates how a
+single application can work with multiple data stores at once.
 
 ## The three databases
 
 | Database | Responsibility | Tables |
 |----------|---------------|--------|
 | `ptetext_users` | Identity & accounts | `users`, `contacts`, `sessions` |
-| `ptetext_chat` | Messaging domain | `conversations`, `conversation_participants`, `messages` |
+| `ptetext_chat` | Messaging | `conversations`, `conversation_participants`, `messages` |
 | `ptetext_system` | Operations & auditing | `activity_log`, `attachments` |
 
-All three are MySQL databases hosted on XAMPP, administered through
-phpMyAdmin. Splitting the data by domain shows deliberate schema design:
+All three run on MySQL via XAMPP and are managed through phpMyAdmin.
 
-- **Isolation** — a problem in the audit log can never corrupt messages.
-- **Independent scaling** — the chat tables (highest write volume) can be
-  tuned/backed up separately from user accounts.
-- **Security boundaries** — credentials live in their own database, separate
-  from everything else.
+Splitting data by domain isn't just for show:
 
-## Features (current milestone)
+- **Isolation** — a problem in the audit log can't corrupt messages.
+- **Independent maintenance** — the high-traffic chat tables can be backed
+  up or tuned separately from accounts.
+- **Security boundaries** — password hashes live in their own database,
+  separate from all other data.
 
-- Account registration and login (salted SHA-256 password hashing)
-- Session tracking (a `sessions` row per login)
-- Contact list (add contact with optional nickname)
-- Direct messages between two users
+## Implemented features (this milestone)
+
+- Registration and login (salted SHA-256 hashing, session tokens)
+- Contact list with optional nicknames
+- Direct messages (existing DMs are reused, never duplicated)
 - Named group chats with member/admin roles
-- File attachment metadata attached to messages
-- Full audit trail: logins, registrations, sent messages, attachments, etc.
+- Attachment metadata on messages
+- Full audit trail — logins, registrations, messages, and more are recorded
+  in the third database
 
-## Technology stack
+## Technology
 
-- **Language:** Java 17+ (Maven project)
-- **Databases:** MySQL/MariaDB via XAMPP, accessed with JDBC
-  (mysql-connector-j)
-- **DB admin:** phpMyAdmin
-- **Interface:** console UI (a JavaFX/Swing GUI is a possible next milestone)
+- **Java 17+** (Maven project, JDBC / mysql-connector-j)
+- **MySQL/MariaDB** via XAMPP, managed in phpMyAdmin
+- **Console UI** — a GUI client is a planned milestone
 
-## Architecture at a glance
+## Architecture in one picture
 
 ```
 ConsoleApp (ui)  -->  AuthService / ChatService (service)  -->  DAOs (dao)
-                                                              |
-                                          ConnectionFactory --+--> ptetext_users
-                                          (db)                +--> ptetext_chat
-                                                              +--> ptetext_system
+                                                            |
+                                    ConnectionFactory ------+--> ptetext_users
+                                          (db)              +--> ptetext_chat
+                                                            +--> ptetext_system
 ```
 
-Details in [02-architecture.md](02-architecture.md) and
-[03-database-schema.md](03-database-schema.md).
+More detail: [02-architecture.md](02-architecture.md) ·
+[03-database-schema.md](03-database-schema.md)
 
-## Future milestones
+## Planned next steps
 
-- GUI client (Swing/JavaFX)
-- Real-time delivery via a socket server instead of DB polling
-- Actual file upload/download for attachments
-- Read receipts and typing indicators
-- Stronger password hashing (BCrypt/Argon2)
+Tracked as GitHub Issues on the repo — one per team member to claim:
+message editing/deletion, read receipts, real file upload, message search,
+password change, a Swing/JavaFX GUI, BCrypt hashing, and a socket server
+for live delivery.

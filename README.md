@@ -1,76 +1,66 @@
 # PTEText
 
-A console-based messaging application written in **Java** that persists its data
-across **three separate MySQL databases**. Built as a group project.
+A chat app written in **Java**, built by our team for the class project.
+The special thing about it: it saves its data into **three separate MySQL
+databases** instead of just one.
 
 ```
-+----------------+     +-------------------+
-|  PTEText (Java)|     |   MySQL / XAMPP   |
-|  console app   | --> |                   |
-+----------------+     |  ptetext_users    |  accounts, contacts, sessions
-        JDBC           |  ptetext_chat     |  conversations, participants, messages
-                       |  ptetext_system   |  activity log, attachment metadata
-                       +-------------------+
+one Java app  --->  three databases (all running in XAMPP)
+
+  ptetext_users   ->  accounts, contacts, login sessions
+  ptetext_chat    ->  conversations, who's in them, messages
+  ptetext_system  ->  activity log (who did what), file attachments
 ```
 
-## Quick start
+## Quick start (the short version)
 
-1. Install [XAMPP](https://www.apachefriends.org/) and start **MySQL** in the
-   XAMPP control panel.
-2. Run `scripts\setup-db.bat` (creates the three databases + demo data), or run
-   the two files in `sql/` through phpMyAdmin.
-3. Run the app:
+1. Open **XAMPP Control Panel** -> press **Start** next to **MySQL**.
+2. Double-click `scripts\setup-db.bat` (creates the 3 databases + demo data).
+3. Double-click `scripts\run.bat` (builds and starts the app).
+4. Log in as `alice` with password `password123`.
 
-   ```
-   scripts\run.bat
-   ```
+That's it. If anything fails, the full guide with fixes is here:
+[docs/04-setup-guide.md](docs/04-setup-guide.md)
 
-   or manually:
+**Cool demo trick:** open the app in two terminals, log in as `alice` in one
+and `bob` in the other, and send messages between them. Type `/refresh` in a
+chat to pull the newest messages.
 
-   ```
-   mvn compile exec:java
-   ```
+## New here? Read in this order
 
-4. Log in with a demo account: `alice`, `bob`, `carol`, `dave`, `erin`,
-   `frank` — password is `password123` for all of them.
+| Read this | Why |
+|-----------|-----|
+| [docs/04-setup-guide.md](docs/04-setup-guide.md) | get the app running on your laptop (~10 min) |
+| [docs/06-user-manual.md](docs/06-user-manual.md) | learn what every menu option does |
+| [docs/07-contributing.md](docs/07-contributing.md) | how we use git/GitHub (explained from zero) |
+| [docs/05-team-roles.md](docs/05-team-roles.md) | who does what + open tasks to claim |
+| [docs/02-architecture.md](docs/02-architecture.md) | how the code is organized |
+| [docs/03-database-schema.md](docs/03-database-schema.md) | every table and column, explained |
+| [docs/01-project-concept.md](docs/01-project-concept.md) | the proposal (what we tell the professor) |
 
-**Demo tip:** open two terminals, run the app in both, log in as `alice` in one
-and `bob` in the other — messages sync through MySQL (use `/refresh`).
+## What you need installed
 
-## Documentation
+- **XAMPP** (gives us MySQL + phpMyAdmin) — <https://www.apachefriends.org/>
+- **Java JDK 17 or newer** — check with `java -version`
+- **Maven** — check with `mvn -version` (IntelliJ/Eclipse already include it)
+- **Git** — check with `git --version`
 
-| Doc | Contents |
-|-----|----------|
-| [docs/01-project-concept.md](docs/01-project-concept.md) | Project proposal: goals, scope, requirements |
-| [docs/02-architecture.md](docs/02-architecture.md) | Layered design, how the 3 databases are used |
-| [docs/03-database-schema.md](docs/03-database-schema.md) | Tables, columns, relationships, ER diagram |
-| [docs/04-setup-guide.md](docs/04-setup-guide.md) | Step-by-step setup for every team member |
-| [docs/05-team-roles.md](docs/05-team-roles.md) | Work split across the 8 team members |
-| [docs/06-user-manual.md](docs/06-user-manual.md) | How to use every menu option |
-| [docs/07-contributing.md](docs/07-contributing.md) | Git workflow, code style, PR rules |
-
-## Requirements
-
-- JDK 17 or newer
-- Maven 3.6+
-- XAMPP (or any MySQL/MariaDB server on `localhost:3306`)
-
-## Repository layout
+## Where stuff lives
 
 ```
 PTEText/
-├── config/          db.properties template (DB credentials)
-├── docs/            all project documentation
-├── scripts/         setup-db.bat, run.bat
-├── sql/             schema + seed data (run in phpMyAdmin or mysql CLI)
+├── config/       database login settings (copy the example file)
+├── docs/         all our documentation — read me!
+├── scripts/      double-clickable .bat files (setup-db, run)
+├── sql/          the .sql files that create the tables + demo data
 ├── src/main/java/com/ptetext/
-│   ├── Main.java    entry point
-│   ├── config/      database configuration loader
-│   ├── db/          ConnectionFactory - one connection per database
-│   ├── model/       data records (User, Message, Conversation, ...)
-│   ├── dao/         SQL access objects, one per table area
-│   ├── service/     business logic (auth, chat) spanning the databases
-│   ├── ui/          console menus
-│   └── util/        password hashing
-└── pom.xml          Maven build
+│   ├── Main.java        the app starts here
+│   ├── config/          reads the database settings
+│   ├── db/              opens connections to the 3 databases
+│   ├── model/           simple data classes (User, Message, ...)
+│   ├── dao/             the classes that run SQL queries
+│   ├── service/         the app's logic (login, sending messages)
+│   ├── ui/              the text menus you see
+│   └── util/            password hashing
+└── pom.xml       Maven config (which libraries we use)
 ```

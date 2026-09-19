@@ -1,94 +1,80 @@
-# PTEText — Architecture
+# Architecture — how the code is organized
 
-## Layers
+## The big idea
 
-The codebase follows a classic layered design. Each layer only talks to the
-layer directly below it.
-
-```
-+------------------------------------------------------+
-| ui        ConsoleApp                                 |
-|           menus, prompts, formatting                 |
-+------------------------------------------------------+
-| service   AuthService          ChatService           |
-|           register/login/      conversations,        |
-|           logout               messages, attachments |
-+------------------------------------------------------+
-| dao       UserDao  SessionDao  ContactDao            |
-|           ConversationDao  MessageDao                |
-|           ActivityLogDao     AttachmentDao           |
-+------------------------------------------------------+
-| db        ConnectionFactory                          |
-|           users() / chat() / system()                |
-+------------------------------------------------------+
-| config    DatabaseConfig (config/db.properties)      |
-+------------------------------------------------------+
-```
-
-### Package-by-package
-
-| Package | Purpose | Example classes |
-|---------|---------|-----------------|
-| `com.ptetext` | entry point | `Main` |
-| `com.ptetext.config` | loads `config/db.properties` | `DatabaseConfig` |
-| `com.ptetext.db` | JDBC connections to the three databases | `ConnectionFactory` |
-| `com.ptetext.model` | plain data records | `User`, `Message`, `Conversation` |
-| `com.ptetext.dao` | one class per table area; raw SQL only | `UserDao`, `MessageDao` |
-| `com.ptetext.service` | business logic; combines DAOs across databases | `AuthService`, `ChatService` |
-| `com.ptetext.ui` | console menus | `ConsoleApp` |
-| `com.ptetext.util` | helpers | `PasswordHasher` |
-
-## How the three databases are used
-
-`ConnectionFactory` is the single place that knows the database names. Every
-DAO picks the connection for its own domain:
+The code is split into layers, like a restaurant:
 
 ```
-DAO                     Connection    Database
-----------------------  -----------   --------------
-UserDao                 users()       ptetext_users
-SessionDao              users()       ptetext_users
-ContactDao              users()       ptetext_users
-ConversationDao         chat()        ptetext_chat
-MessageDao              chat()        ptetext_chat
-ActivityLogDao          system()      ptetext_system
-AttachmentDao           system()      ptetext_system
+ConsoleApp (ui)        = the waiter — shows menus, takes your order
+AuthService/ChatService (service) = the kitchen — decides what happens
+DAOs (dao)             = the pantry staff — they fetch/store things in the DBs
+ConnectionFactory (db) = the door to the pantry — the ONLY way in
+DatabaseConfig (config)= the address book — knows where the DBs are
 ```
 
-### Cross-database flows
+**Golden rule:** each layer only talks to the one below it. The UI never
+writes SQL. DAOs never print menus. If you find yourself breaking this,
+you're probably putting code in the wrong file — ask the group.
 
-A single user action often touches more than one database:
+## Package map (src/main/java/com/ptetext)
 
-- **Login:** read credentials (`ptetext_users`) -> create session row
-  (`ptetext_users`) -> write `LOGIN` audit entry (`ptetext_system`)
-- **Send message:** check membership + insert row (`ptetext_chat`) -> write
-  `MESSAGE_SENT` audit entry (`ptetext_system`)
-- **Display messages:** read message rows (`ptetext_chat`) -> resolve sender
-  display names (`ptetext_users`)
-- **Attach a file:** insert message (`ptetext_chat`) -> insert attachment
-  metadata (`ptetext_system`) -> audit entry (`ptetext_system`)
+| Folder | What's inside | Example |
+|--------|---------------|---------|
+| `ptetext` | the entry point | `Main` |
+| `config` | reads `config/db.properties` | `DatabaseConfig` |
+| `db` | opens connections to the 3 databases | `ConnectionFactory` |
+| `model` | plain data holders (Java records) | `User`, `Message`, `Conversation` |
+| `dao` | classes that run SQL — one per area | `UserDao`, `MessageDao` |
+| `service` | the app's actual logic, combines DAOs | `AuthService`, `ChatService` |
+| `ui` | the text menus | `ConsoleApp` |
+| `util` | helper stuff | `PasswordHasher` |
 
-### Why no cross-database foreign keys?
+## The three databases
 
-`messages.sender_id` refers to `users.user_id`, but the tables live in
-different databases. We deliberately keep the databases independent and let
-the service layer resolve references (e.g. `UserDao.displayNamesFor()`).
-This mirrors real microservice-style systems where each service owns its
-data store.
+`ConnectionFactory` is the only place that knows the database names.
+Each DAO calls the connection for its own domain:
 
-## Messaging model
+```
+DAO                uses        database          stores
+-----------------  ---------   ---------------   --------------------------
+UserDao            users()     ptetext_users     accounts + password hashes
+SessionDao         users()     ptetext_users     login tokens
+ContactDao         users()     ptetext_users     friends lists
+ConversationDao    chat()      ptetext_chat      chats + who's in them
+MessageDao         chat()      ptetext_chat      the messages
+ActivityLogDao     system()    ptetext_system    the "who did what" log
+AttachmentDao      system()    ptetext_system    file metadata
+```
 
-There is no socket server in this milestone. Clients communicate through the
-shared MySQL server: a sent message is a row in `ptetext_chat.messages`, and
-any other client sees it on its next read (`/refresh` or after sending).
-This keeps the concept demo simple while still showing real multi-user,
-multi-database behaviour.
+### One action can touch several databases
 
-## Error handling
+- **Logging in:** check password (users DB) -> create session row (users DB)
+  -> write `LOGIN` in the audit log (system DB)
+- **Sending a message:** check you're in the conversation + save message
+  (chat DB) -> write `MESSAGE_SENT` in the audit log (system DB)
+- **Reading messages:** load the message rows (chat DB) -> look up the
+  senders' names (users DB)
 
-- DAO methods throw `SQLException`; the UI layer catches it and shows a
-  friendly message ("is XAMPP running?").
-- Audit logging **never** fails a user action — `ActivityLogDao.log()`
-  swallows errors and prints a warning instead.
-- Conversation creation runs inside a transaction (`createConversation`),
-  so a conversation can never exist without its participant rows.
+### Why no foreign keys between databases?
+
+`messages.sender_id` points at `users.user_id`, but they live in different
+databases. Instead of cross-database keys, the service layer resolves the
+references (e.g. `UserDao.displayNamesFor()` looks up names in bulk). This
+mirrors how real systems with separate data stores work.
+
+## How chatting actually works
+
+There's no socket server yet. Clients talk through the shared MySQL server:
+sending a message = inserting a row, reading = selecting rows. Another
+person sees your message next time they `/refresh` or send something. Two
+instances of the app can chat with each other as long as they share the
+same MySQL.
+
+## Error handling (the short version)
+
+- If a DAO fails, the UI catches it and prints a friendly message
+  ("is XAMPP running?") instead of crashing.
+- Audit logging never breaks anything — if it fails it just prints a
+  warning. A log entry is never worth killing a user's message.
+- Creating a conversation runs in a transaction, so you can't end up with
+  a chat that has no members.

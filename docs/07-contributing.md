@@ -1,66 +1,103 @@
-# PTEText — Contributing
+# Contributing — how we work together (git explained from zero)
 
-## Getting access (first time)
+## Step 0 — get access
 
-1. Make a GitHub account if you don't have one and send **w0wzahh** your username.
-2. Accept the collaborator invite (check your email, or
+1. Make a GitHub account if you don't have one. Send your username to
+   **w0wzahh**.
+2. You'll get an invite — accept it (check your email or
    github.com/notifications).
-3. Install Git, then clone:
+3. Download the code:
 
    ```
    git clone https://github.com/w0wzahh/PTEText.git
    cd PTEText
    ```
 
-4. Follow [04-setup-guide.md](04-setup-guide.md) to get MySQL + the app running.
-5. Claim an issue from the repo's Issues tab before you start coding — no
-   double-booking features.
+4. Get it running: [04-setup-guide.md](04-setup-guide.md).
+5. **Claim an issue** on the repo's Issues tab (click it -> Assign
+   yourself) so two people don't build the same thing.
 
-## Git workflow
+## The golden rule
 
-1. `git pull` on `main` before starting anything.
-2. Create a branch per feature/fix:
+**Nobody pushes straight to `main`.** Every change goes through a branch
+and a pull request, and w0wzahh reviews it. This is what keeps the project
+from exploding.
 
-   ```
-   git checkout -b feature/read-receipts
-   ```
+## The workflow, step by step
 
-   Prefixes: `feature/`, `fix/`, `docs/`, `refactor/`.
-3. Commit early and often; write messages like
-   `Add read_receipts table to ptetext_chat` (imperative, short).
-4. Push your branch and open a Pull Request on GitHub.
-5. One teammate reviews -> merge. Delete the branch afterwards.
-6. **Never push directly to `main`.** Never force-push.
+Think of git like saving game files:
 
-## Code style
+```
+branch  = your own copy of the project to mess with
+commit  = a save point on your branch
+push    = upload your save points to GitHub
+PR      = "hey, look at my changes" -> review -> merge into main
+```
 
-- Java 17. Plain JDBC — no ORM, no extra libraries without asking the group.
-- 4 spaces, no tabs. Braces on the same line.
-- Models are `record`s; everything else is a normal class.
-- SQL lives **only** in `dao/` classes. Services never write SQL.
-- DAOs use `try (Connection conn = db.users(); PreparedStatement ps = ...)`
-  — always try-with-resources, always `PreparedStatement` (no string-built
-  queries).
-- New user-facing action? Write an `activity_log` entry for it — grep for
-  `logDao.log(` to see the pattern.
-- Comments explain *why*, not *what*. Javadoc on every public class and
-  public method.
+**1. Get the latest code before starting:**
 
-## Changing the schema
+```
+git checkout main
+git pull
+```
 
-1. Discuss in the group first — everyone runs the same databases.
-2. Add a new numbered script `sql/NN_description.sql` (don't edit old ones).
-3. Update `docs/03-database-schema.md` in the same PR.
+**2. Make your own branch:**
 
-## Adding a config option
+```
+git checkout -b feature/my-thing
+```
 
-1. Add it to `config/db.example.properties` with a comment.
-2. Read it in `DatabaseConfig` with a sensible default.
-3. Never commit `config/db.properties` — it is git-ignored on purpose.
+Name it `feature/`, `fix/`, or `docs/` + what it does, e.g.
+`feature/read-receipts`, `fix/login-crash`.
 
-## Before opening a PR
+**3. Code.** When you hit a working point, save it:
+
+```
+git add .
+git commit -m "Add read receipts table"
+```
+
+Commit message style: short, present tense, says what it does.
+
+**4. Upload your branch:**
+
+```
+git push -u origin feature/my-thing
+```
+
+**5. Open a Pull Request** on GitHub: go to the repo page, GitHub usually
+shows a green "Compare & pull request" button — click it, write a sentence
+about what you did, submit.
+
+**6.** w0wzahh reviews it. If changes are requested, edit, commit, push
+again — the PR updates itself. Once approved it gets merged. Done.
+
+**Never** force-push (`push -f`) or commit directly to `main`.
+
+## Code style (keep it consistent)
+
+- Java 17, plain JDBC. No new libraries without asking the group first.
+- 4 spaces, no tabs.
+- SQL lives **only** in `dao/` classes — services and UI never write SQL.
+- Always `PreparedStatement` with `?` placeholders — never glue user input
+  into a query string (that's how SQL injection happens).
+- Always `try (Connection conn = ...)` — try-with-resources, so connections
+  close themselves.
+- Comments: short and useful. A little personality is fine, clutter is not.
+- New user action? Log it — copy the `logDao.log(...)` pattern you see in
+  the services.
+
+## Changing the database schema
+
+Talk to the group FIRST — everyone runs the same databases.
+
+1. Make a new numbered file: `sql/03_whatever.sql` (never edit a merged
+   script — everyone's DB is already built from the old ones).
+2. Update `docs/03-database-schema.md` in the same PR.
+
+## Before you open a PR
 
 - [ ] `mvn -q compile` passes
-- [ ] Ran the app and tried the feature end-to-end
-- [ ] Docs updated if behaviour or schema changed
-- [ ] No credentials/personal data in the diff
+- [ ] you actually ran the app and tried your feature
+- [ ] docs updated if you changed behaviour or the schema
+- [ ] no passwords or personal data in your changes
