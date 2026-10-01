@@ -12,8 +12,8 @@ one Java app  --->  three databases (all running in XAMPP)
   ptetext_system  ->  activity log (who did what), file attachments
 ```
 
-This repo is the **base** for a text messaging app. Six people, six slices —
-see [The six sections](#the-six-sections) for who owns what.
+This repo is the **base** for a text messaging app. Seven people, seven slices —
+see [The seven sections](#the-seven-sections) for who owns what.
 
 ## Current state: skeleton
 
@@ -78,9 +78,9 @@ PTEText/
 └── pom.xml       Maven config (which libraries we use)
 ```
 
-## The six sections
+## The seven sections
 
-Six people, one section each. Together they are the whole app.
+Seven people, one section each. Together they are the whole app.
 
 ```
 ConsoleApp  -->  AuthService / ChatService  -->  DAOs
@@ -138,24 +138,36 @@ The core of the messenger: DMs, group chats, sending and reading texts.
 
 **To build (issues #11, #12):** create conversation + participants in one transaction; reuse existing DMs; list chats for a user; send message (reject non-members); list recent non-deleted messages; resolve sender names through `UserDao`. Groups: title, creator as admin, log `GROUP_CREATED`.
 
-### 5. Activity log and attachments
+### 5. Activity log
 
-The third database: audit trail and file metadata on messages.
+The audit trail in the third database — who did what, when.
 
-**Files:** `model/ActivityLogEntry.java`, `model/Attachment.java`, `dao/ActivityLogDao.java`, `dao/AttachmentDao.java`
+**Files:** `model/ActivityLogEntry.java`, `dao/ActivityLogDao.java`
 
-**Database:** `ptetext_system` → `activity_log`, `attachments`
+**Database:** `ptetext_system` → `activity_log`
 
-**Done:** models, empty DAOs with the intended methods.
+**Done:** model, empty DAO with the intended methods.
 
-**To build (issue #14):** `ActivityLogDao.log` must never throw (catch, warn, continue); `listRecent` for the menu. `AttachmentDao.insert` / `listForMessage` stores name, type, size — not the file bytes. Actions: `REGISTER`, `LOGIN`, `LOGIN_FAILED`, `LOGOUT`, `MESSAGE_SENT`, `GROUP_CREATED`, `CONTACT_ADDED`, `ATTACHMENT_ADDED`.
+**To build (issue #14, log half):** `ActivityLogDao.log` must never throw (catch, warn, continue); `listRecent` for the menu. Other sections call `log(...)` when they finish an action. Actions: `REGISTER`, `LOGIN`, `LOGIN_FAILED`, `LOGOUT`, `MESSAGE_SENT`, `GROUP_CREATED`, `CONTACT_ADDED`, `ATTACHMENT_ADDED`.
 
 ### 6. Console UI
 
-The menus people actually use. Wires the other five sections together.
+The menus people actually use. Wires the other sections together.
 
 **Files:** `src/main/java/com/ptetext/Main.java`, `src/main/java/com/ptetext/ui/ConsoleApp.java`
 
 **Done:** startup, DB health print, menu, **List users** (UI → `UserDao` → MySQL). Options 2–7 are stubs.
 
 **To build:** construct `AuthService` / `ChatService` and the DAOs in `ConsoleApp`, then implement menus 2–7 as those sections land. UI talks to services only — no SQL here. Catch `SQLException` and print a short "is XAMPP running?" message.
+
+### 7. Attachments
+
+File metadata pinned to messages (name, type, size — not the file bytes yet).
+
+**Files:** `model/Attachment.java`, `dao/AttachmentDao.java` (plus `ChatService.sendAttachment` when wired)
+
+**Database:** `ptetext_system` → `attachments`
+
+**Done:** model, empty DAO with the intended methods.
+
+**To build (issue #14, attachment half):** `AttachmentDao.insert` / `listForMessage`; store `file_name`, `mime_type`, `size_bytes`. Real file upload is a stretch goal (`stored_path` is reserved). Log `ATTACHMENT_ADDED`.
