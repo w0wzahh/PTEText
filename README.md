@@ -24,9 +24,9 @@ The project is a **starting point**. What exists:
 - the DB connection plumbing (`ConnectionFactory`, `DatabaseConfig`)
 - the data model records (`model/`)
 - empty DAO/service classes with TODOs describing exactly what to build
-- **one fully working feature** — "List users" — as the reference pattern
+- **Accounts is done** — register, log in, log out, sessions (section 2 below)
 
-What's missing: all the actual features. Those are
+What's missing: the rest of the features. Those are
 [GitHub Issues](https://github.com/w0wzahh/PTEText/issues) — claim one,
 build it, open a PR.
 
@@ -35,7 +35,8 @@ build it, open a PR.
 1. Open **XAMPP Control Panel** -> press **Start** next to **MySQL**.
 2. Double-click `scripts\setup-db.bat` (creates the 3 databases + demo data).
 3. Double-click `scripts\run.bat` (builds and starts the app).
-4. Option `1` lists the demo users — that's the example feature working.
+4. Option `1` lists the demo users; option `3` logs in (try `alice` /
+   `password123`) — that's the accounts slice working.
 
 Full guide with fixes: [docs/04-setup-guide.md](docs/04-setup-guide.md)
 
@@ -110,9 +111,7 @@ Who can use the app: register, log in, stay logged in.
 
 **Database:** `ptetext_users` → `users`, `sessions`
 
-**Done:** `User` / `Session` records, `PasswordHasher` (SHA-256 + salt), `UserDao.findAll()` as the pattern to copy.
-
-**To build (issues #9, #10):** `UserDao.create`, credential lookup, `updateLastSeen`; `SessionDao.createSession` / `invalidate`; `AuthService.register` / `login` / `logout`. Login writes a session in `ptetext_users` and a `LOGIN` row in `ptetext_system`.
+**Done:** `User` / `Session` records, `PasswordHasher` (SHA-256 + salt), `UserDao.findAll()` as the pattern to copy — plus the full slice: `UserDao.create` / `findCredentialsByUsername` / `findById` / `updateLastSeen` / `displayNamesFor`, `SessionDao.createSession` / `findValidUserId` / `invalidate` (12h tokens), `AuthService.register` / `login` / `logout` / `validateSession`. Login writes a session in `ptetext_users` and a `LOGIN` row in `ptetext_system`; failures log `LOGIN_FAILED`.
 
 ### 3. Contacts
 

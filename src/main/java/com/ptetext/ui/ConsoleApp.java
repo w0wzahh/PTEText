@@ -1,35 +1,36 @@
 package com.ptetext.ui;
 
 import com.ptetext.config.DatabaseConfig;
+import com.ptetext.dao.ActivityLogDao;
+import com.ptetext.dao.SessionDao;
 import com.ptetext.dao.UserDao;
 import com.ptetext.db.ConnectionFactory;
+import com.ptetext.model.Session;
 import com.ptetext.model.User;
+import com.ptetext.service.AuthService;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 
-/**
- * The menus — mostly a skeleton right now.
- *
- * What works: the startup DB health check and "List users" — the reference
- * feature. Follow its path (UI -> DAO -> MySQL) when you build yours.
- *
- * Everything else is a TODO mapped to a GitHub issue. Implement it, wire it
- * into the menu, delete the stub line.
- */
 public class ConsoleApp {
 
     private final Scanner scanner = new Scanner(System.in);
 
     private final ConnectionFactory factory;
     private final UserDao userDao;
+    private final AuthService authService;
     // TODO(team): construct your DAOs/services here as they get built
+
+    private Session session;
 
     public ConsoleApp() {
         DatabaseConfig config = DatabaseConfig.load();
         this.factory = new ConnectionFactory(config);
         this.userDao = new UserDao(factory);
+        this.authService = new AuthService(
+                userDao, new SessionDao(factory), new ActivityLogDao(factory));
     }
 
     public void run() {
@@ -41,33 +42,82 @@ public class ConsoleApp {
 
         boolean running = true;
         while (running) {
-            running = menu();
+            running = session == null ? guestMenu() : userMenu();
         }
         System.out.println("Bye!");
     }
 
-    private boolean menu() {
+    private boolean guestMenu() {
         System.out.println("\n1) List users            (works - the example feature)");
-        System.out.println("2) Register              (TODO - issue #9)");
-        System.out.println("3) Login                 (TODO - issue #10)");
-        System.out.println("4) My conversations      (TODO - issue #11)");
-        System.out.println("5) New group chat        (TODO - issue #12)");
-        System.out.println("6) My contacts           (TODO - issue #13)");
-        System.out.println("7) Recent activity       (TODO - issue #14)");
+        System.out.println("2) Register");
+        System.out.println("3) Login");
         System.out.println("0) Exit");
         switch (prompt("Choose")) {
             case "1" -> listUsers();
-            case "2", "3", "4", "5", "6", "7" -> notImplemented();
+            case "2" -> doRegister();
+            case "3" -> doLogin();
             case "0" -> { return false; }
             default -> System.out.println("Unknown option.");
         }
         return true;
     }
 
-    /**
-     * REFERENCE FEATURE — fully built so you can copy the pattern:
-     * menu calls DAO, DAO runs SQL, rows map to model records.
-     */
+    private boolean userMenu() {
+        System.out.println("\n--- " + session.user().displayName()
+                + " (@" + session.user().username() + ") ---");
+        System.out.println("4) My conversations      (TODO - issue #11)");
+        System.out.println("5) New group chat        (TODO - issue #12)");
+        System.out.println("6) My contacts           (TODO - issue #13)");
+        System.out.println("7) Recent activity       (TODO - issue #14)");
+        System.out.println("0) Logout");
+        try {
+            switch (prompt("Choose")) {
+                case "4", "5", "6", "7" -> notImplemented();
+                case "0" -> logout();
+                default -> System.out.println("Unknown option.");
+            }
+        } catch (SQLException e) {
+            printDbError(e);
+        }
+        return true;
+    }
+
+    private void doRegister() {
+        String username = prompt("Pick a username");
+        String displayName = prompt("Display name (shown to others)");
+        String password = prompt("Pick a password (min 6 chars)");
+        try {
+            User user = authService.register(username, password, displayName);
+            System.out.println("Account created! You can now log in as @" + user.username());
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            printDbError(e);
+        }
+    }
+
+    private void doLogin() {
+        String username = prompt("Username");
+        String password = prompt("Password");
+        try {
+            Optional<Session> result = authService.login(username, password);
+            if (result.isPresent()) {
+                session = result.get();
+                System.out.println("Welcome, " + session.user().displayName() + "!");
+            } else {
+                System.out.println("Invalid username or password.");
+            }
+        } catch (SQLException e) {
+            printDbError(e);
+        }
+    }
+
+    private void logout() throws SQLException {
+        authService.logout(session);
+        session = null;
+        System.out.println("Logged out.");
+    }
+
     private void listUsers() {
         try {
             List<User> users = userDao.findAll();

@@ -2,7 +2,11 @@ package com.ptetext.dao;
 
 import com.ptetext.db.ConnectionFactory;
 
-/** ptetext_system.activity_log — the black box recorder. Every action lands here. */
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
+
 public class ActivityLogDao {
 
     private final ConnectionFactory db;
@@ -11,14 +15,26 @@ public class ActivityLogDao {
         this.db = db;
     }
 
+    public void log(Integer userId, String action, String details) {
+        String sql = "INSERT INTO activity_log (user_id, action, details) VALUES (?, ?, ?)";
+        try (Connection conn = db.system();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (userId == null) {
+                ps.setNull(1, Types.INTEGER);
+            } else {
+                ps.setInt(1, userId);
+            }
+            ps.setString(2, action);
+            ps.setString(3, details);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Warning: could not write activity log: " + e.getMessage());
+        }
+    }
+
     /*
      * TODO — issue #14:
      *
-     *   void log(Integer userId, String action, String details)
-     *       — must NEVER throw. Logging must never break a feature: catch, warn, move on
      *   List<ActivityLogEntry> listRecent(int limit)
-     *
-     * Actions so far: REGISTER, LOGIN, LOGIN_FAILED, LOGOUT, MESSAGE_SENT,
-     * GROUP_CREATED, CONTACT_ADDED, ATTACHMENT_ADDED
      */
 }
