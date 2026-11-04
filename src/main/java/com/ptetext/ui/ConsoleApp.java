@@ -85,7 +85,7 @@ public class ConsoleApp {
     private void doRegister() {
         String username = prompt("Pick a username");
         String displayName = prompt("Display name (shown to others)");
-        String password = prompt("Pick a password (min 6 chars)");
+        String password = promptSecret("Pick a password (min 6 chars)");
         try {
             User user = authService.register(username, password, displayName);
             System.out.println("Account created! You can now log in as @" + user.username());
@@ -98,7 +98,7 @@ public class ConsoleApp {
 
     private void doLogin() {
         String username = prompt("Username");
-        String password = prompt("Password");
+        String password = promptSecret("Password");
         try {
             Optional<Session> result = authService.login(username, password);
             if (result.isPresent()) {
@@ -141,6 +141,15 @@ public class ConsoleApp {
     private String prompt(String label) {
         System.out.print(label + ": ");
         return scanner.nextLine();
+    }
+
+    private String promptSecret(String label) {
+        var console = System.console();
+        if (console != null) {
+            char[] chars = console.readPassword(label + ": ");
+            return chars == null ? "" : new String(chars);
+        }
+        return prompt(label);
     }
 
     private void printDbError(SQLException e) {

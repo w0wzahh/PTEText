@@ -23,24 +23,24 @@ public class AuthService {
     }
 
     public User register(String username, String password, String displayName) throws SQLException {
+        username = username == null ? null : username.trim();
         requireValidUsername(username);
         requireValidPassword(password);
+        String name = normalizeDisplayName(username, displayName);
         if (userDao.findCredentialsByUsername(username).isPresent()) {
             throw new IllegalArgumentException("Username '" + username + "' is already taken.");
         }
-        if (displayName == null || displayName.isBlank()) {
-            displayName = username;
-        }
         String salt = PasswordHasher.generateSalt();
-        User user = userDao.create(username, PasswordHasher.hash(salt, password), salt, displayName);
+        User user = userDao.create(username, PasswordHasher.hash(salt, password), salt, name);
         logDao.log(user.userId(), "REGISTER", "Account created for @" + username);
         return user;
     }
 
     public Optional<Session> login(String username, String password) throws SQLException {
-        Optional<UserDao.Credentials> creds = userDao.findCredentialsByUsername(username);
+        String name = username == null ? "" : username.trim();
+        Optional<UserDao.Credentials> creds = userDao.findCredentialsByUsername(name);
         if (creds.isEmpty() || !passwordMatches(creds.get(), password)) {
-            logDao.log(null, "LOGIN_FAILED", "Failed login for @" + username);
+            logDao.log(null, "LOGIN_FAILED", "Failed login for @" + name);
             return Optional.empty();
         }
         User user = creds.get().user();
@@ -73,6 +73,17 @@ public class AuthService {
         if (password == null || password.length() < 6) {
             throw new IllegalArgumentException("Password must be at least 6 characters.");
         }
+    }
+
+    private String normalizeDisplayName(String username, String displayName) {
+        if (displayName == null || displayName.isBlank()) {
+            return username;
+        }
+        String name = displayName.trim();
+        if (name.length() > 100) {
+            throw new IllegalArgumentException("Display name must be at most 100 characters.");
+        }
+        return name;
     }
 
     private boolean passwordMatches(UserDao.Credentials creds, String password) {

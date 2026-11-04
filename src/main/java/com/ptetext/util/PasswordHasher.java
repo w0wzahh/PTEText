@@ -3,6 +3,7 @@ package com.ptetext.util;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 
 /**
@@ -27,7 +28,8 @@ public final class PasswordHasher {
     public static String hash(String salt, String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest((salt + ":" + password).getBytes());
+            byte[] hashed = digest.digest(
+                    (salt + ":" + password).getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hashed);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 not available", e);
@@ -36,6 +38,8 @@ public final class PasswordHasher {
 
     /** Does the typed password match the stored hash? Yes/no, no drama. */
     public static boolean verify(String password, String salt, String expectedHash) {
-        return hash(salt, password).equalsIgnoreCase(expectedHash);
+        return MessageDigest.isEqual(
+                hash(salt, password).getBytes(StandardCharsets.UTF_8),
+                expectedHash.toLowerCase().getBytes(StandardCharsets.UTF_8));
     }
 }

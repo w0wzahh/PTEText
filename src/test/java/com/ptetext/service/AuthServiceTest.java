@@ -47,6 +47,18 @@ class AuthServiceTest {
     }
 
     @Test
+    void registerRejectsWhitespaceOnlyUsername() {
+        assertThrows(IllegalArgumentException.class,
+                () -> auth.register("   ", "password123", "Name"));
+    }
+
+    @Test
+    void registerRejectsTooLongDisplayName() {
+        assertThrows(IllegalArgumentException.class,
+                () -> auth.register("validname", "password123", "x".repeat(101)));
+    }
+
+    @Test
     void loginLogoutRoundTrip() throws Exception {
         assumeTrue(TestDb.isUp(), "MySQL not running - skipping DB test");
 

@@ -60,4 +60,13 @@ class PasswordHasherTest {
         String hash = PasswordHasher.hash("salt_a", "hunter2");
         assertFalse(PasswordHasher.verify("hunter2", "salt_b", hash));
     }
+
+    @Test
+    void nonAsciiPasswordsHashDeterministically() {
+        String a = PasswordHasher.hash("salt", "şïfré-");
+        String b = PasswordHasher.hash("salt", "şïfré-");
+        assertEquals(64, a.length());
+        assertEquals(a, b);
+        assertTrue(PasswordHasher.verify("şïfré-", "salt", a));
+    }
 }
