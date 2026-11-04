@@ -83,4 +83,29 @@ class AuthServiceTest {
         assumeTrue(TestDb.isUp(), "MySQL not running - skipping DB test");
         assertTrue(auth.login("ghost_user_404", "password123").isEmpty());
     }
+
+    @Test
+    void loginLocksAfterRepeatedFailures() throws Exception {
+        assumeTrue(TestDb.isUp(), "MySQL not running - skipping DB test");
+        for (int i = 0; i < 5; i++) {
+            assertTrue(auth.login("lockout_probe", "x").isEmpty());
+        }
+        assertThrows(IllegalStateException.class,
+                () -> auth.login("lockout_probe", "x"));
+    }
+
+    @Test
+    void legacyHashUpgradesToPbkdf2OnLogin() throws Exception {
+        assumeTrue(TestDb.isUp(), "MySQL not running - skipping DB test");
+        ConnectionFactory factory = TestDb.factory();
+        UserDao userDao = new UserDao(factory);
+
+        Optional<Session> session = auth.login("alice", "password123");
+        assertTrue(session.isPresent());
+        auth.logout(session.get());
+
+        String stored = userDao.findCredentialsByUsername("alice").get().passwordHash();
+        assertTrue(stored.startsWith("pbkdf2$"),
+                "alice's hash should be upgraded to PBKDF2 after login");
+    }
 }

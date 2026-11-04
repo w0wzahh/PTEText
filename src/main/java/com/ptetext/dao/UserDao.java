@@ -105,6 +105,17 @@ public class UserDao {
         return names;
     }
 
+    public void updateCredentials(int userId, String passwordHash, String salt) throws SQLException {
+        try (Connection conn = db.users();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE users SET password_hash = ?, salt = ? WHERE user_id = ?")) {
+            ps.setString(1, passwordHash);
+            ps.setString(2, salt);
+            ps.setInt(3, userId);
+            ps.executeUpdate();
+        }
+    }
+
     public void updateLastSeen(int userId) throws SQLException {
         try (Connection conn = db.users();
              PreparedStatement ps = conn.prepareStatement(

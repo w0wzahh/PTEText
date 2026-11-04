@@ -62,6 +62,37 @@ class PasswordHasherTest {
     }
 
     @Test
+    void pbkdf2HashHasPrefixedFormat() {
+        String stored = PasswordHasher.hashPassword("password123", PasswordHasher.generateSalt());
+        assertTrue(stored.matches("pbkdf2\\$600000\\$[0-9a-f]{64}"));
+        assertTrue(stored.length() <= 128);
+    }
+
+    @Test
+    void verifyWorksWithPbkdf2() {
+        String salt = PasswordHasher.generateSalt();
+        String stored = PasswordHasher.hashPassword("hunter2", salt);
+        assertTrue(PasswordHasher.verify("hunter2", salt, stored));
+        assertFalse(PasswordHasher.verify("hunter3", salt, stored));
+        assertFalse(PasswordHasher.verify("hunter2", PasswordHasher.generateSalt(), stored));
+    }
+
+    @Test
+    void needsRehashDetectsLegacyHashes() {
+        String legacy = PasswordHasher.hash("somesalt", "password123");
+        String modern = PasswordHasher.hashPassword("password123", PasswordHasher.generateSalt());
+        assertTrue(PasswordHasher.needsRehash(legacy));
+        assertFalse(PasswordHasher.needsRehash(modern));
+    }
+
+    @Test
+    void legacyVerifyStillWorksAfterUpgrade() {
+        String legacy = PasswordHasher.hash("a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1", "password123");
+        assertTrue(PasswordHasher.verify("password123", "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1", legacy));
+        assertFalse(PasswordHasher.verify("wrongpass", "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1", legacy));
+    }
+
+    @Test
     void nonAsciiPasswordsHashDeterministically() {
         String a = PasswordHasher.hash("salt", "şïfré-");
         String b = PasswordHasher.hash("salt", "şïfré-");

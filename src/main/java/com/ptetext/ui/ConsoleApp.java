@@ -107,6 +107,8 @@ public class ConsoleApp {
             } else {
                 System.out.println("Invalid username or password.");
             }
+        } catch (IllegalStateException e) {
+            System.out.println(e.getMessage());
         } catch (SQLException e) {
             printDbError(e);
         }

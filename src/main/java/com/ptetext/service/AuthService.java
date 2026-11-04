@@ -15,6 +15,7 @@ public class AuthService {
     private final UserDao userDao;
     private final SessionDao sessionDao;
     private final ActivityLogDao logDao;
+    private final LoginThrottle throttle = new LoginThrottle();
 
     public AuthService(UserDao userDao, SessionDao sessionDao, ActivityLogDao logDao) {
         this.userDao = userDao;
@@ -31,21 +32,33 @@ public class AuthService {
             throw new IllegalArgumentException("Username '" + username + "' is already taken.");
         }
         String salt = PasswordHasher.generateSalt();
-        User user = userDao.create(username, PasswordHasher.hash(salt, password), salt, name);
+        User user = userDao.create(username, PasswordHasher.hashPassword(password, salt), salt, name);
         logDao.log(user.userId(), "REGISTER", "Account created for @" + username);
         return user;
     }
 
     public Optional<Session> login(String username, String password) throws SQLException {
         String name = username == null ? "" : username.trim();
+        if (throttle.isLocked(name)) {
+            logDao.log(null, "LOGIN_LOCKED", "Locked-out login attempt for @" + name);
+            throw new IllegalStateException(
+                    "Too many failed attempts - try again in " + throttle.remainingSeconds(name) + "s");
+        }
         Optional<UserDao.Credentials> creds = userDao.findCredentialsByUsername(name);
         if (creds.isEmpty() || !passwordMatches(creds.get(), password)) {
+            throttle.onFailure(name);
             logDao.log(null, "LOGIN_FAILED", "Failed login for @" + name);
             return Optional.empty();
         }
+        throttle.onSuccess(name);
         User user = creds.get().user();
         sessionDao.deleteExpiredSessions();
         String token = sessionDao.createSession(user.userId());
+        if (PasswordHasher.needsRehash(creds.get().passwordHash())) {
+            String newSalt = PasswordHasher.generateSalt();
+            userDao.updateCredentials(user.userId(),
+                    PasswordHasher.hashPassword(password, newSalt), newSalt);
+        }
         userDao.updateLastSeen(user.userId());
         logDao.log(user.userId(), "LOGIN", "Login successful");
         return Optional.of(new Session(token, user));
@@ -73,13 +86,19 @@ public class AuthService {
         if (password == null || password.length() < 6) {
             throw new IllegalArgumentException("Password must be at least 6 characters.");
         }
+        if (password.length() > 128) {
+            throw new IllegalArgumentException("Password must be at most 128 characters.");
+        }
     }
 
     private String normalizeDisplayName(String username, String displayName) {
-        if (displayName == null || displayName.isBlank()) {
+        if (displayName == null) {
             return username;
         }
-        String name = displayName.trim();
+        String name = displayName.replaceAll("\\p{Cntrl}", "").trim();
+        if (name.isEmpty()) {
+            return username;
+        }
         if (name.length() > 100) {
             throw new IllegalArgumentException("Display name must be at most 100 characters.");
         }

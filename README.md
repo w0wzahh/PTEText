@@ -113,7 +113,7 @@ Who can use the app: register, log in, stay logged in.
 
 **Database:** `ptetext_users` → `users`, `sessions`
 
-**Done:** `User` / `Session` records, `PasswordHasher` (SHA-256 + salt), `UserDao.findAll()` as the pattern to copy — plus the full slice: `UserDao.create` / `findCredentialsByUsername` / `findById` / `updateLastSeen` / `displayNamesFor`, `SessionDao.createSession` / `findValidUserId` / `invalidate` (12h tokens), `AuthService.register` / `login` / `logout` / `validateSession`. Login writes a session in `ptetext_users` and a `LOGIN` row in `ptetext_system`; failures log `LOGIN_FAILED`.
+**Done:** `User` / `Session` records, `PasswordHasher` (PBKDF2-HMAC-SHA256, 600k iterations — legacy SHA-256 rows upgrade on login), `UserDao` full CRUD + `displayNamesFor`, `SessionDao` (12h tokens + expired cleanup), `AuthService.register` / `login` / `logout` / `validateSession`, `LoginThrottle` (5 fails/60s → 30s lockout). Login writes a session in `ptetext_users` and a `LOGIN` row in `ptetext_system`; failures log `LOGIN_FAILED` / `LOGIN_LOCKED`.
 
 ### 3. Contacts
 

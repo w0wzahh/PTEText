@@ -84,7 +84,7 @@ erDiagram
 |--------|---------------|
 | `user_id` | auto-increment PK — 1, 2, 3... |
 | `username` | login name, must be unique (`alice`, `bob`...) |
-| `password_hash` | the scrambled password (SHA-256 hex, 64 chars) |
+| `password_hash` | `pbkdf2$600000$<64-hex>` for new/upgraded accounts; legacy rows hold a plain SHA-256 hex and get upgraded on next login |
 | `salt` | random value mixed into the hash so two identical passwords look different |
 | `display_name` | the pretty name shown in chats ("Alice Anderson") |
 | `created_at` | when the account was made |
