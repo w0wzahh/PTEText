@@ -55,4 +55,12 @@ public class SessionDao {
             ps.executeUpdate();
         }
     }
+
+    public int deleteExpiredSessions() throws SQLException {
+        try (Connection conn = db.users();
+             PreparedStatement ps = conn.prepareStatement(
+                     "DELETE FROM sessions WHERE is_valid = 0 OR expires_at < CURRENT_TIMESTAMP")) {
+            return ps.executeUpdate();
+        }
+    }
 }

@@ -23,20 +23,13 @@ public class AuthService {
     }
 
     public User register(String username, String password, String displayName) throws SQLException {
-        if (username == null || username.isBlank() || username.length() > 50) {
-            throw new IllegalArgumentException("Username must be 1-50 characters.");
-        }
-        if (!username.matches("[a-zA-Z0-9_]+")) {
-            throw new IllegalArgumentException("Username may only contain letters, digits and _");
-        }
-        if (password == null || password.length() < 6) {
-            throw new IllegalArgumentException("Password must be at least 6 characters.");
+        requireValidUsername(username);
+        requireValidPassword(password);
+        if (userDao.findCredentialsByUsername(username).isPresent()) {
+            throw new IllegalArgumentException("Username '" + username + "' is already taken.");
         }
         if (displayName == null || displayName.isBlank()) {
             displayName = username;
-        }
-        if (userDao.findCredentialsByUsername(username).isPresent()) {
-            throw new IllegalArgumentException("Username '" + username + "' is already taken.");
         }
         String salt = PasswordHasher.generateSalt();
         User user = userDao.create(username, PasswordHasher.hash(salt, password), salt, displayName);
@@ -46,12 +39,12 @@ public class AuthService {
 
     public Optional<Session> login(String username, String password) throws SQLException {
         Optional<UserDao.Credentials> creds = userDao.findCredentialsByUsername(username);
-        if (creds.isEmpty()
-                || !PasswordHasher.verify(password, creds.get().salt(), creds.get().passwordHash())) {
+        if (creds.isEmpty() || !passwordMatches(creds.get(), password)) {
             logDao.log(null, "LOGIN_FAILED", "Failed login for @" + username);
             return Optional.empty();
         }
         User user = creds.get().user();
+        sessionDao.deleteExpiredSessions();
         String token = sessionDao.createSession(user.userId());
         userDao.updateLastSeen(user.userId());
         logDao.log(user.userId(), "LOGIN", "Login successful");
@@ -65,5 +58,24 @@ public class AuthService {
     public void logout(Session session) throws SQLException {
         sessionDao.invalidate(session.sessionId());
         logDao.log(session.user().userId(), "LOGOUT", "Session ended");
+    }
+
+    private void requireValidUsername(String username) {
+        if (username == null || username.isBlank() || username.length() > 50) {
+            throw new IllegalArgumentException("Username must be 1-50 characters.");
+        }
+        if (!username.matches("[a-zA-Z0-9_]+")) {
+            throw new IllegalArgumentException("Username may only contain letters, digits and _");
+        }
+    }
+
+    private void requireValidPassword(String password) {
+        if (password == null || password.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters.");
+        }
+    }
+
+    private boolean passwordMatches(UserDao.Credentials creds, String password) {
+        return PasswordHasher.verify(password, creds.salt(), creds.passwordHash());
     }
 }

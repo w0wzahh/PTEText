@@ -67,6 +67,8 @@ PTEText/
 ├── docs/         all our documentation — read me!
 ├── scripts/      double-clickable .bat files (setup-db, run)
 ├── sql/          the .sql files that create the tables + demo data
+├── tests/        manual test evidence, one folder per section (see tests/README.md)
+├── src/test/java/com/ptetext/   automated JUnit tests — run with `mvn test`
 ├── src/main/java/com/ptetext/
 │   ├── Main.java        the app starts here
 │   ├── config/          reads the database settings
