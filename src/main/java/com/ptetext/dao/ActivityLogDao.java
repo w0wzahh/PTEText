@@ -2,8 +2,8 @@ package com.ptetext.dao;
 
 import com.ptetext.db.ConnectionFactory;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 
@@ -16,17 +16,16 @@ public class ActivityLogDao {
     }
 
     public void log(Integer userId, String action, String details) {
-        String sql = "INSERT INTO activity_log (user_id, action, details) VALUES (?, ?, ?)";
         try (Connection conn = db.system();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             CallableStatement cs = conn.prepareCall("{call sp_log_action(?,?,?)}")) {
             if (userId == null) {
-                ps.setNull(1, Types.INTEGER);
+                cs.setNull(1, Types.INTEGER);
             } else {
-                ps.setInt(1, userId);
+                cs.setInt(1, userId);
             }
-            ps.setString(2, action);
-            ps.setString(3, details);
-            ps.executeUpdate();
+            cs.setString(2, action);
+            cs.setString(3, details);
+            cs.execute();
         } catch (SQLException e) {
             System.err.println("Warning: could not write activity log: " + e.getMessage());
         }

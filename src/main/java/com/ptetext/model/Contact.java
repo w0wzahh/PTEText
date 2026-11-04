@@ -9,6 +9,7 @@ public record Contact(
         String contactUsername,
         String contactDisplayName,
         String nickname,
+        boolean favorite,
         Timestamp addedAt) {
 
     /** What the owner sees: nickname if set, else the display name. */

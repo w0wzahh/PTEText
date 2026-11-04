@@ -97,6 +97,7 @@ erDiagram
 | `owner_id` | whose list this is (FK -> users) |
 | `contact_id` | who's in the list (FK -> users) |
 | `nickname` | optional private label ("Bobby") |
+| `is_favorite` | 1 = pinned contact |
 | `added_at` | when added |
 
 PK is `owner_id + contact_id` together, so you can't add the same person twice.
@@ -129,6 +130,7 @@ PK is `owner_id + contact_id` together, so you can't add the same person twice.
 | `user_id` | which user (logical ref -> users) |
 | `role` | `member` or `admin` (creator is admin) |
 | `joined_at` | when they joined |
+| `last_read_at` | last time this user read the chat — feeds read receipts |
 
 ### `messages` — the texts
 
@@ -165,6 +167,18 @@ PK is `owner_id + contact_id` together, so you can't add the same person twice.
 | `mime_type` | e.g. `application/pdf` |
 | `size_bytes` | file size |
 | `stored_path` | empty for now — real file storage is an open issue |
+
+## Stored procedures
+
+The assignment requires stored procedure usage — the accounts slice calls
+these via JDBC `CallableStatement` (created by `sql/05_model_fixes_and_procedures.sql`):
+
+| Procedure | Lives in | Does | Called from |
+|-----------|----------|------|-------------|
+| `sp_register_user(u,hash,salt,name,OUT id)` | `ptetext_users` | inserts user, returns new id | `UserDao.registerUser` |
+| `sp_open_session(user,token,hours)` | `ptetext_users` | inserts session with computed expiry | `SessionDao.createSession` |
+| `sp_cleanup_expired_sessions(OUT n)` | `ptetext_users` | deletes dead sessions, returns count | `SessionDao.deleteExpiredSessions` |
+| `sp_log_action(user,action,details)` | `ptetext_system` | writes an audit row | `ActivityLogDao.log` |
 
 ## Design choices worth mentioning
 

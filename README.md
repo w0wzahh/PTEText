@@ -51,6 +51,7 @@ Full guide with fixes: [docs/04-setup-guide.md](docs/04-setup-guide.md)
 | [docs/03-database-schema.md](docs/03-database-schema.md) | every table and column, explained |
 | [docs/06-user-manual.md](docs/06-user-manual.md) | what the app does (grows as features land) |
 | [docs/01-project-concept.md](docs/01-project-concept.md) | the proposal (what we tell the professor) |
+| [docs/08-requirements-map.md](docs/08-requirements-map.md) | checklist: each assignment requirement -> where it's implemented |
 
 ## What you need installed
 

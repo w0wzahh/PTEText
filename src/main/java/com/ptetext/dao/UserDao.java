@@ -3,11 +3,13 @@ package com.ptetext.dao;
 import com.ptetext.db.ConnectionFactory;
 import com.ptetext.model.User;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +41,54 @@ public class UserDao {
                 keys.next();
                 return new User(keys.getInt(1), username, displayName, null, null);
             }
+        }
+    }
+
+    public User registerUser(String username, String passwordHash, String salt, String displayName)
+            throws SQLException {
+        try (Connection conn = db.users();
+             CallableStatement cs = conn.prepareCall("{call sp_register_user(?,?,?,?,?)}")) {
+            cs.setString(1, username);
+            cs.setString(2, passwordHash);
+            cs.setString(3, salt);
+            cs.setString(4, displayName);
+            cs.registerOutParameter(5, Types.INTEGER);
+            cs.execute();
+            return new User(cs.getInt(5), username, displayName, null, null);
+        }
+    }
+
+    public List<User> searchUsers(String prefix) throws SQLException {
+        String sql = "SELECT user_id, username, display_name, created_at, last_seen "
+                + "FROM users WHERE username LIKE ? ESCAPE '!' ORDER BY username LIMIT 20";
+        List<User> users = new ArrayList<>();
+        try (Connection conn = db.users();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, escapeLike(prefix) + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapUser(rs));
+                }
+            }
+        }
+        return users;
+    }
+
+    public void updateDisplayName(int userId, String displayName) throws SQLException {
+        try (Connection conn = db.users();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE users SET display_name = ? WHERE user_id = ?")) {
+            ps.setString(1, displayName);
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public void deleteById(int userId) throws SQLException {
+        try (Connection conn = db.users();
+             PreparedStatement ps = conn.prepareStatement("DELETE FROM users WHERE user_id = ?")) {
+            ps.setInt(1, userId);
+            ps.executeUpdate();
         }
     }
 
@@ -123,6 +173,10 @@ public class UserDao {
             ps.setInt(1, userId);
             ps.executeUpdate();
         }
+    }
+
+    private static String escapeLike(String s) {
+        return s.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
     private User mapUser(ResultSet rs) throws SQLException {

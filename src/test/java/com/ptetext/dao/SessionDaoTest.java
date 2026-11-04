@@ -42,4 +42,12 @@ class SessionDaoTest {
     void expiredCleanupRuns() throws Exception {
         dao.deleteExpiredSessions();
     }
+
+    @Test
+    void countActiveSessionsTracksLifecycle() throws Exception {
+        String token = dao.createSession(ALICE_ID);
+        assertTrue(dao.countActiveSessions(ALICE_ID) >= 1);
+        dao.invalidate(token);
+        dao.deleteExpiredSessions();
+    }
 }

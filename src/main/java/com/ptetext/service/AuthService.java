@@ -32,7 +32,7 @@ public class AuthService {
             throw new IllegalArgumentException("Username '" + username + "' is already taken.");
         }
         String salt = PasswordHasher.generateSalt();
-        User user = userDao.create(username, PasswordHasher.hashPassword(password, salt), salt, name);
+        User user = userDao.registerUser(username, PasswordHasher.hashPassword(password, salt), salt, name);
         logDao.log(user.userId(), "REGISTER", "Account created for @" + username);
         return user;
     }

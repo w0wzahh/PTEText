@@ -2,13 +2,12 @@ package com.ptetext.dao;
 
 import com.ptetext.db.ConnectionFactory;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.sql.Types;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,13 +23,12 @@ public class SessionDao {
 
     public String createSession(int userId) throws SQLException {
         String token = UUID.randomUUID().toString();
-        String sql = "INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)";
         try (Connection conn = db.users();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, token);
-            ps.setInt(2, userId);
-            ps.setTimestamp(3, Timestamp.from(Instant.now().plus(SESSION_HOURS, ChronoUnit.HOURS)));
-            ps.executeUpdate();
+             CallableStatement cs = conn.prepareCall("{call sp_open_session(?,?,?)}")) {
+            cs.setInt(1, userId);
+            cs.setString(2, token);
+            cs.setInt(3, SESSION_HOURS);
+            cs.execute();
         }
         return token;
     }
@@ -47,6 +45,19 @@ public class SessionDao {
         }
     }
 
+    public int countActiveSessions(int userId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM sessions "
+                + "WHERE user_id = ? AND is_valid = 1 AND expires_at > CURRENT_TIMESTAMP";
+        try (Connection conn = db.users();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
     public void invalidate(String sessionId) throws SQLException {
         try (Connection conn = db.users();
              PreparedStatement ps = conn.prepareStatement(
@@ -58,9 +69,10 @@ public class SessionDao {
 
     public int deleteExpiredSessions() throws SQLException {
         try (Connection conn = db.users();
-             PreparedStatement ps = conn.prepareStatement(
-                     "DELETE FROM sessions WHERE is_valid = 0 OR expires_at < CURRENT_TIMESTAMP")) {
-            return ps.executeUpdate();
+             CallableStatement cs = conn.prepareCall("{call sp_cleanup_expired_sessions(?)}")) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.execute();
+            return cs.getInt(1);
         }
     }
 }

@@ -35,7 +35,9 @@ class UserDaoTest {
     void findCredentialsByUsernameReturnsHashAndSalt() throws Exception {
         Optional<UserDao.Credentials> creds = dao.findCredentialsByUsername("alice");
         assertTrue(creds.isPresent());
-        assertEquals(64, creds.get().passwordHash().length());
+        String hash = creds.get().passwordHash();
+        assertTrue(hash.length() == 64 || hash.startsWith("pbkdf2$"),
+                "hash should be legacy SHA-256 (64) or upgraded PBKDF2");
         assertEquals(32, creds.get().salt().length());
     }
 
@@ -48,6 +50,32 @@ class UserDaoTest {
     void findByIdMatchesUsernameLookup() throws Exception {
         User alice = dao.findCredentialsByUsername("alice").get().user();
         assertEquals("alice", dao.findById(alice.userId()).get().username());
+    }
+
+    @Test
+    void registerAndDeleteViaProcedure() throws Exception {
+        User temp = dao.registerUser("tmp_proc_user",
+                "x".repeat(64), "y".repeat(32), "Temp Proc");
+        try {
+            assertTrue(temp.userId() > 0);
+            assertEquals("tmp_proc_user", dao.findById(temp.userId()).get().username());
+        } finally {
+            dao.deleteById(temp.userId());
+        }
+        assertTrue(dao.findById(temp.userId()).isEmpty());
+    }
+
+    @Test
+    void searchUsersFindsByPrefix() throws Exception {
+        List<User> results = dao.searchUsers("ali");
+        assertTrue(results.stream().anyMatch(u -> u.username().equals("alice")));
+        assertTrue(dao.searchUsers("zzz_no_match").isEmpty());
+    }
+
+    @Test
+    void searchUsersTreatsWildcardsLiterally() throws Exception {
+        assertTrue(dao.searchUsers("%").isEmpty());
+        assertTrue(dao.searchUsers("_").isEmpty());
     }
 
     @Test
