@@ -19,30 +19,36 @@ Swagger (or curl/Postman) is how you use the app.
 | `GET /api/auth/session/{token}` | check a token is still valid → `{"userId":N}` |
 | `POST /api/auth/change-password` | change your password — body: `{"sessionId","currentPassword","newPassword"}` → `204` |
 | `GET /api/users` | list every registered user |
+| `GET /api/chat?sessionId=` | list my conversations (group title / other person's name for DMs) |
+| `POST /api/chat/direct` | open or reuse a DM, body: `{"sessionId","otherUserId"}` |
+| `POST /api/chat/group` | create a group, body: `{"sessionId","title","memberIds":[…]}` |
+| `GET /api/chat/{id}/messages?sessionId=&limit=50` | recent non-deleted messages, oldest-first, with sender names |
+| `POST /api/chat/{id}/messages` | send a text, body: `{"sessionId","body"}` |
 
 Demo accounts (password `password123`): `alice`, `bob`, `carol`, `dave`,
-`erin`, `frank`.
+`erin`, `frank`. Seed data already has a DM (alice↔bob) and a "Project Team"
+group — log in as `alice` and `GET /api/chat` to see them.
 
 ## A normal session looks like
 
 1. `POST /api/auth/register` → `201` + your user object
    (or just log in as `alice`)
 2. `POST /api/auth/login` → `200` + `{"sessionId":"db5f9d0f-...","user":{...}}`
-3. Save that `sessionId`, it's your token. Other slices' endpoints will
-   ask for it.
-4. Later: `POST /api/auth/logout` with the token → `204`.
+3. Save that `sessionId`, it's your token. Chat endpoints need it.
+4. `GET /api/chat?sessionId=...` → your conversations
+5. `POST /api/chat/{id}/messages` with `{"sessionId","body"}` → send a text
+6. Later: `POST /api/auth/logout` with the token → `204`.
 
 ## Error responses
 
 Errors come back as `{"error": "why it failed"}`:
 
-- `400`, bad input (short password, username taken, weird characters)
+- `400`, bad input (empty message, not a member, self-DM, missing title)
 - `401`, wrong username/password, or expired/invalid token
 - `429`, too many failed logins; wait ~30 seconds and retry
 
 ## What's not built yet
 
-Contacts, chats/messages, the activity-log viewer, attachments, and the web
-client are in progress, each lands as a new group of endpoints under
-`/api/` (claims are in `docs/05-team-roles.md`). This page grows as they
-merge.
+Contacts, the activity-log viewer, attachments endpoints, and the web
+client are in progress (claims are in `docs/05-team-roles.md`). This page
+grows as they merge.

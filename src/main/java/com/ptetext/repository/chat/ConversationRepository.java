@@ -8,16 +8,17 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ConversationRepository extends JpaRepository<ConversationEntity, Integer> {
 
     List<ConversationEntity> findByConversationIdIn(List<Integer> ids);
 
-    // TODO(section 4): reuse-an-existing-DM query (self-join on participants)
-    @Query("SELECT p.conversationId FROM ParticipantEntity p1, ParticipantEntity p "
-            + "WHERE p1.conversationId = p.conversationId "
-            + "AND p1.userId = :userA AND p.userId = :userB")
-    List<Integer> findSharedConversationIds(@Param("userA") int userA, @Param("userB") int userB);
+    @Query("SELECT c.conversationId FROM ConversationEntity c, "
+            + "ParticipantEntity a, ParticipantEntity b "
+            + "WHERE c.conversationId = a.conversationId "
+            + "AND c.conversationId = b.conversationId "
+            + "AND c.group = false "
+            + "AND a.userId = :userA AND b.userId = :userB")
+    List<Integer> findDirectConversationIds(@Param("userA") int userA, @Param("userB") int userB);
 }

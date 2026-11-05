@@ -1,8 +1,17 @@
 package com.ptetext.controller;
 
+import com.ptetext.dto.Dtos.ChatMessageDto;
+import com.ptetext.dto.Dtos.ConversationIdResponse;
+import com.ptetext.dto.Dtos.ConversationSummaryDto;
+import com.ptetext.dto.Dtos.CreateGroupRequest;
 import com.ptetext.dto.Dtos.ErrorResponse;
-import com.ptetext.entity.system.AttachmentEntity;
+import com.ptetext.dto.Dtos.MessageIdResponse;
+import com.ptetext.dto.Dtos.OpenDmRequest;
+import com.ptetext.dto.Dtos.SendMessageRequest;
+import com.ptetext.service.AuthService;
 import com.ptetext.service.ChatService;
+import com.ptetext.service.ChatService.ChatMessage;
+import com.ptetext.service.ChatService.ConversationSummary;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,62 +27,96 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/chat")
-@Tag(name = "Chat", description = "DMs, group chats, messages - section 3 (jobayed003, issues #11/#12)")
+@Tag(name = "Chat")
 public class ChatController {
 
     private final ChatService chat;
+    private final AuthService auth;
 
-    public ChatController(ChatService chat) {
+    public ChatController(ChatService chat, AuthService auth) {
         this.chat = chat;
+        this.auth = auth;
     }
 
-    // All of these return 501 until section 3 implements them.
-    // Fill the service, then replace the stub bodies. URLs stay as they are -
-    // KuroNeko951's web client is being built against these paths.
-
     @PostMapping("/direct")
-    @Operation(summary = "Open or reuse a DM with another user")
-    public ResponseEntity<ErrorResponse> openDirect(@RequestBody Object req) {
-        return notBuilt();
+    @Operation(summary = "Open or reuse a DM")
+    public ResponseEntity<?> openDirect(@RequestBody OpenDmRequest req) {
+        Optional<Integer> me = auth.validateSession(req.sessionId());
+        if (me.isEmpty()) {
+            return unauthorized();
+        }
+        if (req.otherUserId() == null) {
+            throw new IllegalArgumentException("otherUserId is required.");
+        }
+        int id = chat.openOrCreateDirectChat(me.get(), req.otherUserId());
+        return ResponseEntity.ok(new ConversationIdResponse(id));
     }
 
     @PostMapping("/group")
-    @Operation(summary = "Create a group chat (creator becomes admin)")
-    public ResponseEntity<ErrorResponse> createGroup(@RequestBody Object req) {
-        return notBuilt();
+    @Operation(summary = "Create a group chat")
+    public ResponseEntity<?> createGroup(@RequestBody CreateGroupRequest req) {
+        Optional<Integer> me = auth.validateSession(req.sessionId());
+        if (me.isEmpty()) {
+            return unauthorized();
+        }
+        int id = chat.createGroup(req.title(), me.get(), req.memberIds());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ConversationIdResponse(id));
     }
 
     @GetMapping
     @Operation(summary = "List my conversations")
-    public ResponseEntity<ErrorResponse> list(@RequestParam int userId) {
-        return notBuilt();
+    public ResponseEntity<?> list(@RequestParam String sessionId) {
+        Optional<Integer> me = auth.validateSession(sessionId);
+        if (me.isEmpty()) {
+            return unauthorized();
+        }
+        List<ConversationSummaryDto> body = chat.listConversations(me.get()).stream()
+                .map(this::toSummaryDto)
+                .toList();
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/{conversationId}/messages")
-    @Operation(summary = "Send a message (members only)")
-    public ResponseEntity<ErrorResponse> send(@PathVariable int conversationId,
-                                              @RequestBody Object req) {
-        return notBuilt();
+    @Operation(summary = "Send a message")
+    public ResponseEntity<?> send(@PathVariable int conversationId,
+                                  @RequestBody SendMessageRequest req) {
+        Optional<Integer> me = auth.validateSession(req.sessionId());
+        if (me.isEmpty()) {
+            return unauthorized();
+        }
+        long messageId = chat.sendMessage(conversationId, me.get(), req.body());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageIdResponse(messageId));
     }
 
     @GetMapping("/{conversationId}/messages")
     @Operation(summary = "Read recent messages")
-    public ResponseEntity<ErrorResponse> messages(@PathVariable int conversationId,
-                                                  @RequestParam(defaultValue = "50") int limit) {
-        return notBuilt();
+    public ResponseEntity<?> messages(@PathVariable int conversationId,
+                                      @RequestParam String sessionId,
+                                      @RequestParam(defaultValue = "50") int limit) {
+        Optional<Integer> me = auth.validateSession(sessionId);
+        if (me.isEmpty()) {
+            return unauthorized();
+        }
+        List<ChatMessageDto> body = chat.getMessages(conversationId, me.get(), limit).stream()
+                .map(this::toMessageDto)
+                .toList();
+        return ResponseEntity.ok(body);
     }
 
-    private ResponseEntity<ErrorResponse> notBuilt() {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body(new ErrorResponse("Not built yet - claimed by section 3 (jobayed003)"));
+    private ConversationSummaryDto toSummaryDto(ConversationSummary s) {
+        return new ConversationSummaryDto(s.conversationId(), s.label(), s.group());
     }
 
-    @GetMapping(value="/chat/attatment/findByName/")
-    public List<AttachmentEntity> findFileByName(@PathVariable String name){
-        return chat.findFileName(name);
+    private ChatMessageDto toMessageDto(ChatMessage m) {
+        return new ChatMessageDto(m.messageId(), m.senderName(), m.body(), m.sentAt());
+    }
 
+    private ResponseEntity<ErrorResponse> unauthorized() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("Session invalid or expired"));
     }
 }
