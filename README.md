@@ -90,7 +90,7 @@ Six people, one slice each. The recipe for building your slice is in
 | Slice | Owner | Covers | Status |
 |-------|-------|--------|--------|
 | Foundation + Accounts | **w0wzahh** (lead) | build, `sql/`, scripts, auth endpoints, sessions, hashing, throttle, health | **done** — copy this pattern |
-| Conversations & messages | **jobayed003** | `ChatService`, `ChatController`, message/participant repos | #11, #12 |
+| Conversations & messages | **jobayed003** | `ChatService`, `ChatController`, message/participant repos | **done** — `/api/chat` (list, direct, group, send/read) |
 | Contacts | **panahikamil2-png** | `ContactRepository` queries, `ContactService`, `ContactController` | #13 |
 | Activity log | **leylamova1404-bit** | `ActivityLogRepository` + `LogController` | #14 (log half) |
 | Attachments | **Doomsdaysfall** | `AttachmentRepository` + `AttachmentService` + `AttachmentController` | #14 (attachment half) |

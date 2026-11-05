@@ -1,6 +1,7 @@
 package com.ptetext.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class Dtos {
 
@@ -31,5 +32,27 @@ public final class Dtos {
     }
 
     public record ErrorResponse(String error) {
+    }
+
+    public record OpenDmRequest(String sessionId, Integer otherUserId) {
+    }
+
+    public record CreateGroupRequest(String sessionId, String title, List<Integer> memberIds) {
+    }
+
+    public record SendMessageRequest(String sessionId, String body) {
+    }
+
+    public record ConversationIdResponse(int conversationId) {
+    }
+
+    public record MessageIdResponse(long messageId) {
+    }
+
+    public record ConversationSummaryDto(int conversationId, String label, boolean group) {
+    }
+
+    public record ChatMessageDto(long messageId, String senderName, String body,
+                                 LocalDateTime sentAt) {
     }
 }
