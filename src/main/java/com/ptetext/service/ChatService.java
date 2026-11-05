@@ -28,10 +28,12 @@ public class ChatService {
 
     private static final int DEFAULT_MESSAGE_LIMIT = 50;
 
-    public record ConversationSummary(int conversationId, String label, boolean group) {
+    public record ConversationSummary(int conversationId, String label, boolean group,
+                                      int unreadCount, LocalDateTime lastReadAt) {
     }
 
-    public record ChatMessage(long messageId, String senderName, String body, LocalDateTime sentAt) {
+    public record ChatMessage(long messageId, String senderName, String body,
+                              LocalDateTime sentAt, LocalDateTime editedAt, boolean read) {
     }
 
     private final ConversationRepository conversations;
@@ -103,9 +105,55 @@ public class ChatService {
         }
         requireParticipant(conversationId, senderId);
         MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body.trim()));
+        markConversationRead(conversationId, senderId);
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
         return saved.getMessageId();
+    }
+
+    @Transactional
+    public void markConversationRead(int conversationId, int userId) {
+        ParticipantEntity me = participants
+                .findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "You are not a member of this conversation."));
+        LocalDateTime now = LocalDateTime.now();
+        if (me.getLastReadAt() == null || me.getLastReadAt().isBefore(now)) {
+            me.setLastReadAt(now);
+            participants.save(me);
+        }
+    }
+
+    @Transactional
+    public void editMessage(long messageId, int editorId, String newBody) {
+        if (newBody == null || newBody.isBlank()) {
+            throw new IllegalArgumentException("Message is empty.");
+        }
+        MessageEntity m = messages.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
+        if (m.isDeleted()) {
+            throw new IllegalArgumentException("Cannot edit a deleted message.");
+        }
+        if (m.getSenderId() != editorId) {
+            throw new IllegalArgumentException("You can only edit your own messages.");
+        }
+        m.markEdited(newBody.trim(), LocalDateTime.now());
+        messages.save(m);
+        audit.log(editorId, "MESSAGE_EDITED", "Edited message " + messageId);
+    }
+
+    @Transactional
+    public void deleteMessage(long messageId, int deleterId) {
+        MessageEntity m = messages.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
+        if (m.getSenderId() != deleterId) {
+            throw new IllegalArgumentException("You can only delete your own messages.");
+        }
+        if (!m.isDeleted()) {
+            m.markDeleted();
+            messages.save(m);
+            audit.log(deleterId, "MESSAGE_DELETED", "Deleted message " + messageId);
+        }
     }
 
     @Transactional
@@ -146,10 +194,20 @@ public class ChatService {
         }
         Map<Integer, String> names = displayNamesFor(senderIds);
 
+        Map<Integer, LocalDateTime> readMarks = new HashMap<>();
+        for (ParticipantEntity p : participants.findByConversationId(conversationId)) {
+            if (p.getUserId() != viewerId && p.getLastReadAt() != null) {
+                readMarks.put(p.getUserId(), p.getLastReadAt());
+            }
+        }
+
         List<ChatMessage> result = new ArrayList<>(rows.size());
         for (MessageEntity row : rows) {
             String name = names.getOrDefault(row.getSenderId(), "User #" + row.getSenderId());
-            result.add(new ChatMessage(row.getMessageId(), name, row.getBody(), row.getSentAt()));
+            boolean read = readMarks.values().stream()
+                    .anyMatch(t -> !t.isBefore(row.getSentAt()));
+            result.add(new ChatMessage(row.getMessageId(), name, row.getBody(),
+                    row.getSentAt(), row.getEditedAt(), read));
         }
         return result;
     }
@@ -179,6 +237,11 @@ public class ChatService {
         }
         Map<Integer, String> names = displayNamesFor(otherIds);
 
+        Map<Integer, LocalDateTime> myReadMarks = new HashMap<>();
+        for (ParticipantEntity p : mine) {
+            myReadMarks.put(p.getConversationId(), p.getLastReadAt());
+        }
+
         List<ConversationSummary> summaries = new ArrayList<>();
         for (ConversationEntity c : convos) {
             String label;
@@ -194,7 +257,12 @@ public class ChatService {
                 }
                 label = names.getOrDefault(otherId, "User #" + otherId);
             }
-            summaries.add(new ConversationSummary(c.getConversationId(), label, c.isGroup()));
+            LocalDateTime myMark = myReadMarks.get(c.getConversationId());
+            int unread = messages.countByConversationIdAndDeletedFalseAndSentAtAfter(
+                    c.getConversationId(),
+                    myMark == null ? LocalDateTime.of(1970, 1, 1, 0, 0) : myMark);
+            summaries.add(new ConversationSummary(
+                    c.getConversationId(), label, c.isGroup(), unread, myMark));
         }
         return summaries;
     }

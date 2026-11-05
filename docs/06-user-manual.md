@@ -19,6 +19,14 @@ Swagger (or curl/Postman) is how you use the app.
 | `GET /api/auth/session/{token}` | check a token is still valid → `{"userId":N}` |
 | `POST /api/auth/change-password` | change your password — body: `{"sessionId","currentPassword","newPassword"}` → `204` |
 | `GET /api/users` | list every registered user |
+| `POST /api/chat/direct` | open/reuse a DM — `{"sessionId","otherUserId"}` → conversationId |
+| `POST /api/chat/group` | create a group — `{"sessionId","title","memberIds":[..]}` → `201` |
+| `GET /api/chat?sessionId=` | list my conversations (label, unreadCount, lastReadAt) |
+| `POST /api/chat/{id}/messages` | send — `{"sessionId","body"}` → `201` |
+| `GET /api/chat/{id}/messages?sessionId=` | read messages (read flag shows if others saw it) |
+| `POST /api/chat/{id}/read` | mark conversation read — `{"sessionId"}` → `204` |
+| `PUT /api/chat/messages/{id}` | edit your own message — `{"sessionId","body"}` → `204` |
+| `DELETE /api/chat/messages/{id}?sessionId=` | soft-delete your own message → `204` |
 | `GET /api/chat?sessionId=` | list my conversations (group title / other person's name for DMs) |
 | `POST /api/chat/direct` | open or reuse a DM, body: `{"sessionId","otherUserId"}` |
 | `POST /api/chat/group` | create a group, body: `{"sessionId","title","memberIds":[…]}` |
