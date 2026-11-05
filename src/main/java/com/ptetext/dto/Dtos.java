@@ -43,9 +43,6 @@ public final class Dtos {
     public record SendMessageRequest(String sessionId, String body) {
     }
 
-    public record EditMessageRequest(String sessionId, String body) {
-    }
-
     public record ReadRequest(String sessionId) {
     }
 
@@ -60,6 +57,6 @@ public final class Dtos {
     }
 
     public record ChatMessageDto(long messageId, String senderName, String body,
-                                 LocalDateTime sentAt, LocalDateTime editedAt, boolean read) {
+                                 LocalDateTime sentAt, boolean read) {
     }
 }

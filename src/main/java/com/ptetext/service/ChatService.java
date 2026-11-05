@@ -33,7 +33,7 @@ public class ChatService {
     }
 
     public record ChatMessage(long messageId, String senderName, String body,
-                              LocalDateTime sentAt, LocalDateTime editedAt, boolean read) {
+                              LocalDateTime sentAt, boolean read) {
     }
 
     private final ConversationRepository conversations;
@@ -125,38 +125,6 @@ public class ChatService {
     }
 
     @Transactional("chatTransactionManager")
-    public void editMessage(long messageId, int editorId, String newBody) {
-        if (newBody == null || newBody.isBlank()) {
-            throw new IllegalArgumentException("Message is empty.");
-        }
-        MessageEntity m = messages.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
-        if (m.isDeleted()) {
-            throw new IllegalArgumentException("Cannot edit a deleted message.");
-        }
-        if (m.getSenderId() != editorId) {
-            throw new IllegalArgumentException("You can only edit your own messages.");
-        }
-        m.markEdited(newBody.trim(), LocalDateTime.now());
-        messages.save(m);
-        audit.log(editorId, "MESSAGE_EDITED", "Edited message " + messageId);
-    }
-
-    @Transactional("chatTransactionManager")
-    public void deleteMessage(long messageId, int deleterId) {
-        MessageEntity m = messages.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
-        if (m.getSenderId() != deleterId) {
-            throw new IllegalArgumentException("You can only delete your own messages.");
-        }
-        if (!m.isDeleted()) {
-            m.markDeleted();
-            messages.save(m);
-            audit.log(deleterId, "MESSAGE_DELETED", "Deleted message " + messageId);
-        }
-    }
-
-    @Transactional("chatTransactionManager")
     public long sendAttachment(int conversationId, int senderId, String fileName, long sizeBytes) {
         if (fileName == null || fileName.isBlank()) {
             throw new IllegalArgumentException("File name is required.");
@@ -207,7 +175,7 @@ public class ChatService {
             boolean read = readMarks.values().stream()
                     .anyMatch(t -> !t.isBefore(row.getSentAt()));
             result.add(new ChatMessage(row.getMessageId(), name, row.getBody(),
-                    row.getSentAt(), row.getEditedAt(), read));
+                    row.getSentAt(), read));
         }
         return result;
     }
