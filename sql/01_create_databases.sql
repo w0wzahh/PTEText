@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     session_id CHAR(36)  PRIMARY KEY,             -- UUID
     user_id    INT       NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NULL DEFAULT NULL
     is_valid   TINYINT(1) NOT NULL DEFAULT 1,
     CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
