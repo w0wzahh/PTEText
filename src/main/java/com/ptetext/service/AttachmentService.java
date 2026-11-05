@@ -6,9 +6,7 @@ import com.ptetext.repository.system.AttachmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.FileNotFoundException;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class AttachmentService {
