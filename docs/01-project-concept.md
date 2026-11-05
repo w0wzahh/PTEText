@@ -1,6 +1,6 @@
-# PTEText — Project Concept
+# PTEText. Project Concept
 
-*(This is the proposal document — the "what and why" we show the professor.)*
+*(This is the proposal document, the "what and why" we show the professor.)*
 
 ## What it is
 
@@ -24,10 +24,10 @@ All three run on MySQL via XAMPP and are managed through phpMyAdmin.
 
 Splitting data by domain isn't just for show:
 
-- **Isolation** — a problem in the audit log can't corrupt messages.
-- **Independent maintenance** — the high-traffic chat tables can be backed
+- **Isolation**, a problem in the audit log can't corrupt messages.
+- **Independent maintenance**, the high-traffic chat tables can be backed
   up or tuned separately from accounts.
-- **Security boundaries** — password hashes live in their own database,
+- **Security boundaries**, password hashes live in their own database,
   separate from all other data.
 
 ## Status
@@ -50,7 +50,7 @@ socket server for live delivery (issues #1–#8).
 
 - **Java 17+** (Maven project, JDBC / mysql-connector-j)
 - **MySQL/MariaDB** via XAMPP, managed in phpMyAdmin
-- **Console UI** — a GUI client is a planned milestone
+- **Console UI**, a GUI client is a planned milestone
 
 ## Architecture in one picture
 
@@ -70,5 +70,5 @@ More detail: [02-architecture.md](02-architecture.md) ·
 
 ## Planned next steps
 
-All tracked as GitHub Issues on the repo — one per team member to claim.
+All tracked as GitHub Issues on the repo, one per team member to claim.
 See `docs/05-team-roles.md` for the split.

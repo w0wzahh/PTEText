@@ -1,10 +1,10 @@
-# Contributing — how we work together (git explained from zero)
+# Contributing, how we work together (git explained from zero)
 
-## Step 0 — get access
+## Step 0, get access
 
 1. Make a GitHub account if you don't have one. Send your username to
    **w0wzahh**.
-2. You'll get an invite — accept it (check your email or
+2. You'll get an invite, accept it (check your email or
    github.com/notifications).
 3. Download the code:
 
@@ -66,11 +66,11 @@ git push -u origin feature/my-thing
 ```
 
 **5. Open a Pull Request** on GitHub: go to the repo page, GitHub usually
-shows a green "Compare & pull request" button — click it, write a sentence
+shows a green "Compare & pull request" button, click it, write a sentence
 about what you did, submit.
 
 **6.** w0wzahh reviews it. If changes are requested, edit, commit, push
-again — the PR updates itself. Once approved it gets merged. Done.
+again, the PR updates itself. Once approved it gets merged. Done.
 
 **Never** force-push (`push -f`) or commit directly to `main`.
 
@@ -79,21 +79,21 @@ again — the PR updates itself. Once approved it gets merged. Done.
 - Java 17, Spring Boot + Spring Data JPA. No new libraries without asking
   the group first.
 - 4 spaces, no tabs.
-- Database access lives **only** in `repository/` interfaces — services and
+- Database access lives **only** in `repository/` interfaces, services and
   controllers never write SQL. Need a custom query? `@Query` JPQL on the
   repository, never string-built SQL.
 - Write methods in services get `@Transactional`; controllers stay thin.
   close themselves.
 - Comments: short and useful. A little personality is fine, clutter is not.
-- New user action? Log it — copy the `logDao.log(...)` pattern you see in
+- New user action? Log it, copy the `logDao.log(...)` pattern you see in
   the services.
 
 ## Changing the database schema
 
-Talk to the group FIRST — everyone runs the same databases.
+Talk to the group FIRST, everyone runs the same databases.
 
 1. Make a new numbered file: `sql/03_whatever.sql` (never edit a merged
-   script — everyone's DB is already built from the old ones).
+   script, everyone's DB is already built from the old ones).
 2. Update `docs/03-database-schema.md` in the same PR.
 
 ## Before you open a PR

@@ -1,4 +1,4 @@
-# Database Schema — every table, explained
+# Database Schema, every table, explained
 
 Three databases, created by `sql/01_create_databases.sql`.
 
@@ -7,7 +7,7 @@ Quick vocab for anyone new to databases:
 - **PK** (primary key) = the column that uniquely identifies each row
 - **FK** (foreign key) = a column that points at another table's PK
 - **"logical ref"** below = it *points at* a table in a different database,
-  so it's not a real FK — the Java code does the lookup instead
+  so it's not a real FK, the Java code does the lookup instead
 
 ## The picture
 
@@ -76,13 +76,13 @@ erDiagram
     }
 ```
 
-## Database 1 — `ptetext_users` (who you are)
+## Database 1 - `ptetext_users` (who you are)
 
-### `users` — the accounts
+### `users`, the accounts
 
 | Column | What it holds |
 |--------|---------------|
-| `user_id` | auto-increment PK — 1, 2, 3... |
+| `user_id` | auto-increment PK. 1, 2, 3... |
 | `username` | login name, must be unique (`alice`, `bob`...) |
 | `password_hash` | `pbkdf2$600000$<64-hex>` for new/upgraded accounts; legacy rows hold a plain SHA-256 hex and get upgraded on next login |
 | `salt` | random value mixed into the hash so two identical passwords look different |
@@ -90,7 +90,7 @@ erDiagram
 | `created_at` | when the account was made |
 | `last_seen` | last login time |
 
-### `contacts` — your friends list
+### `contacts`, your friends list
 
 | Column | What it holds |
 |--------|---------------|
@@ -102,7 +102,7 @@ erDiagram
 
 PK is `owner_id + contact_id` together, so you can't add the same person twice.
 
-### `sessions` — who's logged in
+### `sessions`, who's logged in
 
 | Column | What it holds |
 |--------|---------------|
@@ -111,9 +111,9 @@ PK is `owner_id + contact_id` together, so you can't add the same person twice.
 | `expires_at` | sessions die after 12 hours |
 | `is_valid` | set to 0 on logout |
 
-## Database 2 — `ptetext_chat` (the talking)
+## Database 2 - `ptetext_chat` (the talking)
 
-### `conversations` — the chats
+### `conversations`, the chats
 
 | Column | What it holds |
 |--------|---------------|
@@ -122,7 +122,7 @@ PK is `owner_id + contact_id` together, so you can't add the same person twice.
 | `is_group` | 1 = group chat, 0 = DM |
 | `created_by` | user_id of the creator (logical ref) |
 
-### `conversation_participants` — who's in each chat
+### `conversation_participants`, who's in each chat
 
 | Column | What it holds |
 |--------|---------------|
@@ -130,23 +130,23 @@ PK is `owner_id + contact_id` together, so you can't add the same person twice.
 | `user_id` | which user (logical ref -> users) |
 | `role` | `member` or `admin` (creator is admin) |
 | `joined_at` | when they joined |
-| `last_read_at` | last time this user read the chat — feeds read receipts |
+| `last_read_at` | last time this user read the chat, feeds read receipts |
 
-### `messages` — the texts
+### `messages`, the texts
 
 | Column | What it holds |
 |--------|---------------|
-| `message_id` | BIGINT auto-increment PK — messages pile up fast, hence the bigger type |
+| `message_id` | BIGINT auto-increment PK, messages pile up fast, hence the bigger type |
 | `conversation_id` | FK -> conversations |
 | `sender_id` | who sent it (logical ref -> users) |
 | `body` | the text |
 | `sent_at` | timestamp |
 | `edited_at` | for a future edit feature |
-| `is_deleted` | soft delete — the row stays, it just stops showing |
+| `is_deleted` | soft delete, the row stays, it just stops showing |
 
-## Database 3 — `ptetext_system` (the receipts)
+## Database 3 - `ptetext_system` (the receipts)
 
-### `activity_log` — who did what, when
+### `activity_log`, who did what, when
 
 | Column | What it holds |
 |--------|---------------|
@@ -156,7 +156,7 @@ PK is `owner_id + contact_id` together, so you can't add the same person twice.
 | `details` | extra context, free text |
 | `created_at` | timestamp |
 
-### `attachments` — file info (not the files themselves)
+### `attachments`, file info (not the files themselves)
 
 | Column | What it holds |
 |--------|---------------|
@@ -166,11 +166,11 @@ PK is `owner_id + contact_id` together, so you can't add the same person twice.
 | `file_name` | e.g. `homework.pdf` |
 | `mime_type` | e.g. `application/pdf` |
 | `size_bytes` | file size |
-| `stored_path` | empty for now — real file storage is an open issue |
+| `stored_path` | empty for now, real file storage is an open issue |
 
 ## Stored procedures
 
-The assignment requires stored procedure usage — the accounts slice calls
+The assignment requires stored procedure usage, the accounts slice calls
 these via JDBC `CallableStatement` (created by `sql/05_model_fixes_and_procedures.sql`):
 
 | Procedure | Lives in | Does | Called from |
@@ -182,8 +182,8 @@ these via JDBC `CallableStatement` (created by `sql/05_model_fixes_and_procedure
 
 ## Design choices worth mentioning
 
-- **`is_deleted` instead of real DELETE** — messages are soft-deleted so the
+- **`is_deleted` instead of real DELETE**, messages are soft-deleted so the
   history/audit stays complete.
 - **Composite PKs** (`owner_id + contact_id`, `conversation_id + user_id`)
   make duplicates impossible at the database level.
-- **utf8mb4 charset** — emoji and non-English text work everywhere.
+- **utf8mb4 charset**, emoji and non-English text work everywhere.
