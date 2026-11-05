@@ -102,6 +102,39 @@ class AuthServiceTest {
     }
 
     @Test
+    void changePasswordRequiresValidSession() {
+        when(sessions.findValidUserId("dead-token")).thenReturn(Optional.empty());
+        assertThrows(IllegalStateException.class,
+                () -> auth.changePassword("dead-token", "old", "newpass123"));
+    }
+
+    @Test
+    void changePasswordRejectsWrongCurrent() {
+        UserEntity alice = new UserEntity("alice",
+                PasswordHasher.hashPassword("rightpass"), "", "Alice");
+        when(sessions.findValidUserId("tok")).thenReturn(Optional.of(1));
+        when(users.findById(1)).thenReturn(Optional.of(alice));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> auth.changePassword("tok", "wrongpass", "newpass123"));
+        verify(users, never()).save(any());
+    }
+
+    @Test
+    void changePasswordStoresBcryptAndAudits() {
+        UserEntity alice = new UserEntity("alice",
+                PasswordHasher.hashPassword("rightpass"), "", "Alice");
+        when(sessions.findValidUserId("tok")).thenReturn(Optional.of(1));
+        when(users.findById(1)).thenReturn(Optional.of(alice));
+
+        auth.changePassword("tok", "rightpass", "newpass123");
+
+        assertTrue(alice.getPasswordHash().startsWith("bcrypt$"));
+        assertTrue(PasswordHasher.verify("newpass123", "", alice.getPasswordHash()));
+        verify(audit).log(1, "PASSWORD_CHANGED", "Password updated");
+    }
+
+    @Test
     void locksAfterFiveFailures() {
         when(users.findByUsername("ghost")).thenReturn(Optional.empty());
         for (int i = 0; i < 5; i++) {

@@ -17,6 +17,7 @@ Swagger (or curl/Postman) is how you use the app.
 | `POST /api/auth/login` | log in, body: `{"username","password"}` → returns a `sessionId` (valid 12h) |
 | `POST /api/auth/logout` | kill a session, body: `{"sessionId":"..."}` |
 | `GET /api/auth/session/{token}` | check a token is still valid → `{"userId":N}` |
+| `POST /api/auth/change-password` | change your password — body: `{"sessionId","currentPassword","newPassword"}` → `204` |
 | `GET /api/users` | list every registered user |
 
 Demo accounts (password `password123`): `alice`, `bob`, `carol`, `dave`,

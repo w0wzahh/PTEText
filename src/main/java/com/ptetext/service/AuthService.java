@@ -38,9 +38,8 @@ public class AuthService {
         if (users.existsByUsername(username)) {
             throw new IllegalArgumentException("Username '" + username + "' is already taken.");
         }
-        String salt = PasswordHasher.generateSalt();
         Integer id = users.registerUser(username,
-                PasswordHasher.hashPassword(password, salt), salt, name);
+                PasswordHasher.hashPassword(password), "", name);
         audit.log(id, "REGISTER", "Account created for @" + username);
         return users.findById(id).orElseThrow();
     }
@@ -66,8 +65,7 @@ public class AuthService {
         String token = UUID.randomUUID().toString();
         sessions.openSession(user.getUserId(), token, SESSION_HOURS);
         if (PasswordHasher.needsRehash(user.getPasswordHash())) {
-            String newSalt = PasswordHasher.generateSalt();
-            user.setCredentials(PasswordHasher.hashPassword(password, newSalt), newSalt);
+            user.setCredentials(PasswordHasher.hashPassword(password), "");
         }
         user.setLastSeen(LocalDateTime.now());
         users.save(user);
@@ -77,6 +75,21 @@ public class AuthService {
 
     public Optional<Integer> validateSession(String sessionId) {
         return sessions.findValidUserId(sessionId);
+    }
+
+    @Transactional
+    public void changePassword(String sessionId, String currentPassword, String newPassword) {
+        Integer userId = validateSession(sessionId)
+                .orElseThrow(() -> new IllegalStateException("Valid session required."));
+        UserEntity user = users.findById(userId).orElseThrow();
+        if (!PasswordHasher.verify(currentPassword, user.getSalt(), user.getPasswordHash())) {
+            audit.log(userId, "PASSWORD_CHANGE_FAILED", "Wrong current password");
+            throw new IllegalArgumentException("Current password is incorrect.");
+        }
+        requireValidPassword(newPassword);
+        user.setCredentials(PasswordHasher.hashPassword(newPassword), "");
+        users.save(user);
+        audit.log(userId, "PASSWORD_CHANGED", "Password updated");
     }
 
     @Transactional

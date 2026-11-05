@@ -9,16 +9,37 @@ import java.util.HexFormat;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 public final class PasswordHasher {
 
+    private static final String BCRYPT_PREFIX = "bcrypt$";
     private static final String PBKDF2_PREFIX = "pbkdf2$";
     private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
-    private static final int PBKDF2_ITERATIONS = 600_000;
     private static final int PBKDF2_KEY_BITS = 256;
 
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
 
     private PasswordHasher() {
+    }
+
+    public static String hashPassword(String password) {
+        return BCRYPT_PREFIX + BCRYPT.encode(password);
+    }
+
+    public static boolean needsRehash(String storedHash) {
+        return !storedHash.startsWith(BCRYPT_PREFIX);
+    }
+
+    public static boolean verify(String password, String salt, String expectedHash) {
+        if (expectedHash.startsWith(BCRYPT_PREFIX)) {
+            return BCRYPT.matches(password, expectedHash.substring(BCRYPT_PREFIX.length()));
+        }
+        if (expectedHash.startsWith(PBKDF2_PREFIX)) {
+            return verifyPbkdf2(password, salt, expectedHash);
+        }
+        return verifyLegacySha256(password, salt, expectedHash);
     }
 
     public static String generateSalt() {
@@ -28,19 +49,8 @@ public final class PasswordHasher {
     }
 
     public static String hashPassword(String password, String salt) {
-        byte[] derived = pbkdf2(password, decodeSalt(salt), PBKDF2_ITERATIONS);
-        return PBKDF2_PREFIX + PBKDF2_ITERATIONS + "$" + HexFormat.of().formatHex(derived);
-    }
-
-    public static boolean needsRehash(String storedHash) {
-        return !storedHash.startsWith(PBKDF2_PREFIX);
-    }
-
-    public static boolean verify(String password, String salt, String expectedHash) {
-        if (expectedHash.startsWith(PBKDF2_PREFIX)) {
-            return verifyPbkdf2(password, salt, expectedHash);
-        }
-        return verifyLegacySha256(password, salt, expectedHash);
+        byte[] derived = pbkdf2(password, decodeSalt(salt), 600_000);
+        return PBKDF2_PREFIX + 600_000 + "$" + HexFormat.of().formatHex(derived);
     }
 
     public static String hash(String salt, String password) {

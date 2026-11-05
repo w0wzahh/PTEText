@@ -80,9 +80,25 @@ class PasswordHasherTest {
     @Test
     void needsRehashDetectsLegacyHashes() {
         String legacy = PasswordHasher.hash("somesalt", "password123");
-        String modern = PasswordHasher.hashPassword("password123", PasswordHasher.generateSalt());
+        String pbkdf2 = PasswordHasher.hashPassword("password123", PasswordHasher.generateSalt());
+        String bcrypt = PasswordHasher.hashPassword("password123");
         assertTrue(PasswordHasher.needsRehash(legacy));
-        assertFalse(PasswordHasher.needsRehash(modern));
+        assertTrue(PasswordHasher.needsRehash(pbkdf2));
+        assertFalse(PasswordHasher.needsRehash(bcrypt));
+    }
+
+    @Test
+    void bcryptHashHasPrefixedFormat() {
+        String stored = PasswordHasher.hashPassword("password123");
+        assertTrue(stored.matches("bcrypt\\$\\$2[aby]\\$\\d\\d\\$.{53}"));
+        assertTrue(stored.length() <= 128);
+    }
+
+    @Test
+    void verifyWorksWithBcrypt() {
+        String stored = PasswordHasher.hashPassword("hunter2");
+        assertTrue(PasswordHasher.verify("hunter2", "", stored));
+        assertFalse(PasswordHasher.verify("hunter3", "", stored));
     }
 
     @Test

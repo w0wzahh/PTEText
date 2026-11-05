@@ -16,6 +16,10 @@ public final class Dtos {
     public record SessionRequest(String sessionId) {
     }
 
+    public record ChangePasswordRequest(String sessionId, String currentPassword,
+                                        String newPassword) {
+    }
+
     public record UserDto(Integer userId, String username, String displayName,
                           LocalDateTime createdAt, LocalDateTime lastSeen) {
     }

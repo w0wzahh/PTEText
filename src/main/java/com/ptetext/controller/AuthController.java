@@ -1,5 +1,6 @@
 package com.ptetext.controller;
 
+import com.ptetext.dto.Dtos.ChangePasswordRequest;
 import com.ptetext.dto.Dtos.ErrorResponse;
 import com.ptetext.dto.Dtos.LoginRequest;
 import com.ptetext.dto.Dtos.LoginResponse;
@@ -65,6 +66,13 @@ public class AuthController {
     @Operation(summary = "Invalidate a session token")
     public ResponseEntity<Void> logout(@RequestBody SessionRequest req) {
         auth.logout(req.sessionId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Change password (needs session + current password)")
+    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest req) {
+        auth.changePassword(req.sessionId(), req.currentPassword(), req.newPassword());
         return ResponseEntity.noContent().build();
     }
 
