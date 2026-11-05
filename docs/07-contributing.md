@@ -83,10 +83,9 @@ again, the PR updates itself. Once approved it gets merged. Done.
   controllers never write SQL. Need a custom query? `@Query` JPQL on the
   repository, never string-built SQL.
 - Write methods in services get `@Transactional`; controllers stay thin.
-  close themselves.
 - Comments: short and useful. A little personality is fine, clutter is not.
-- New user action? Log it, copy the `logDao.log(...)` pattern you see in
-  the services.
+- New user action? Log it, copy the `audit.log(...)` pattern you see in
+  `AuthService`.
 
 ## Changing the database schema
 
@@ -96,9 +95,22 @@ Talk to the group FIRST, everyone runs the same databases.
    script, everyone's DB is already built from the old ones).
 2. Update `docs/03-database-schema.md` in the same PR.
 
-## Before you open a PR
+## Before you open a PR (not optional)
 
-- [ ] `mvn -q compile` passes
-- [ ] you actually ran the app and tried your feature
-- [ ] docs updated if you changed behaviour or the schema
-- [ ] no passwords or personal data in your changes
+If `main` breaks, everyone's work stops. Check ALL of these before pushing:
+
+- [ ] `mvn test` finishes green, not just compiles. Dependency mistakes
+      fail here, we just learned that the hard way.
+- [ ] `scripts\setup-db.bat` runs clean against a real MySQL if you touched
+      anything in `sql/`, a missing comma counts as broken.
+- [ ] You actually hit your endpoint in Swagger UI, "it compiles" is not
+      "it works".
+- [ ] You did not invent dependency names. Spring starters live at
+      https://docs.spring.io/spring-boot/appendix/dependency-versions/index.html,
+      if it's not there or not already in our `pom.xml`, ask the group
+      BEFORE adding it.
+- [ ] Docs updated if you changed behaviour or the schema.
+- [ ] No passwords, personal data, or local machine paths in your changes.
+
+Pushed something and the build breaks anyway? Fix it in a NEW commit right
+away or tell the group. Don't leave `main` red for someone else to find.
