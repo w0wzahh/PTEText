@@ -13,8 +13,8 @@ import java.util.List;
 public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Long> {
 
     List<AttachmentEntity> findByMessageId(Long messageId);
-    @Query(value = "SELECT a FROM Attachments a WHERE a.file_name = :fileName", nativeQuery = true)
-    public List<AttachmentEntity> findByFileName(@Param("fileName") String name);
+    @Query(value = "SELECT * FROM Attachments WHERE file_name = :fileName", nativeQuery = true)
+    public List<AttachmentEntity> findFileByName(@Param("fileName") String name);
 
 
 

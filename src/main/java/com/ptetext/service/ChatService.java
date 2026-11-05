@@ -267,9 +267,7 @@ public class ChatService {
         return summaries;
     }
 
-    public List<AttachmentEntity> findFileName(String name) {
-        return attachments.findByFileName(name);
-    }
+
 
     private int createConversation(String title, boolean group, int createdBy, List<Integer> memberIds) {
         ConversationEntity saved = conversations.save(new ConversationEntity(title, group, createdBy));
