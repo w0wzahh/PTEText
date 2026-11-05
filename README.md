@@ -111,3 +111,4 @@ Everyone writes tests + docs for their own slice.
 | [docs/06-user-manual.md](docs/06-user-manual.md) | the API endpoints as they land |
 | [docs/01-project-concept.md](docs/01-project-concept.md) | the proposal |
 | [docs/08-requirements-map.md](docs/08-requirements-map.md) | assignment requirements → where implemented |
+| [docs/09-sql-queries-and-procedures.md](docs/09-sql-queries-and-procedures.md) | derived methods, @Query JPQL, stored procs — how to query |
