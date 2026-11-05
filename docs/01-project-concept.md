@@ -57,8 +57,8 @@ socket server for live delivery (issues #1–#8).
 ```
 controllers (REST + Swagger)  -->  services  -->  Spring Data JPA repositories
                                                               |
-                                      one datasource, entities pick their
-                                      database via @Table(catalog=...)
+                                  three datasources (config/*DbConfig.java),
+                                  repos+entities split per database
                                                               |
                                              +--> ptetext_users
                                              +--> ptetext_chat

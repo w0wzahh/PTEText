@@ -67,11 +67,13 @@ void openSession(Integer p_user_id, String p_token, Integer p_hours);
 Parameter names must match the procedure's parameter names (`p_username`
 etc.). OUT params come back as the return value via `outputParameterName`.
 
-### b) `StoredProcedureQuery` — for procs in other databases
+### b) `StoredProcedureQuery` — for procs outside a repository's database
 
-`sp_log_action` lives in `ptetext_system` but our datasource defaults to
-`ptetext_users`, so `@Procedure` can't see it. `AuditLogger` calls it
-directly through the EntityManager with a qualified name:
+`sp_log_action` lives in `ptetext_system` and is shared by every service,
+so it doesn't belong to one repository. `AuditLogger` injects the
+EntityManager of the `system` persistence unit
+(`@PersistenceContext(unitName = "system")`) and calls it directly with a
+qualified name:
 
 ```java
 StoredProcedureQuery q = em.createStoredProcedureQuery("ptetext_system.sp_log_action");
@@ -104,6 +106,7 @@ Copy `service/AuditLogger.java` if you need this pattern.
    `application.properties` because MariaDB's driver can't read procedure
    parameter metadata without it. Don't remove it — OUT params silently
    break.
-4. Datasource defaults to `ptetext_users`. Procs/entities in other DBs must
-   be catalog-qualified (`ptetext_system.sp_log_action`,
-   `@Table(catalog="ptetext_chat")`).
+4. Each database has its own persistence unit (`config/*DbConfig.java`).
+   A repository only sees entities and procs in its own database. If a
+   proc must be callable from anywhere (`sp_log_action`), inject the
+   right unit's EntityManager like `AuditLogger` does.

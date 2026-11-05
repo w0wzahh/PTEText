@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuditLogger {
 
-    @PersistenceContext
+    @PersistenceContext(unitName = "system")
     private EntityManager em;
 
     public void log(Integer userId, String action, String details) {

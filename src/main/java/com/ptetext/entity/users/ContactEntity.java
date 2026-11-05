@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "contacts", catalog = "ptetext_users")
+@Table(name = "contacts")
 @IdClass(ContactEntity.ContactId.class)
 public class ContactEntity {
 

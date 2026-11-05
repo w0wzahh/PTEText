@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "conversations", catalog = "ptetext_chat")
+@Table(name = "conversations")
 public class ConversationEntity {
 
     @Id

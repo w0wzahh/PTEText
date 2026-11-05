@@ -8,7 +8,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sessions", catalog = "ptetext_users")
+@Table(name = "sessions")
 public class SessionEntity {
 
     @Id

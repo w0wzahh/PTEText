@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "attachments", catalog = "ptetext_system")
+@Table(name = "attachments")
 public class AttachmentEntity {
 
     @Id

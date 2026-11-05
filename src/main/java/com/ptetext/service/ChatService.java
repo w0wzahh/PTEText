@@ -54,7 +54,7 @@ public class ChatService {
         this.audit = audit;
     }
 
-    @Transactional
+    @Transactional("chatTransactionManager")
     public int openOrCreateDirectChat(int me, int otherUserId) {
         if (me == otherUserId) {
             throw new IllegalArgumentException("You cannot start a direct chat with yourself.");
@@ -69,7 +69,7 @@ public class ChatService {
         return createConversation(null, false, me, List.of(me, otherUserId));
     }
 
-    @Transactional
+    @Transactional("chatTransactionManager")
     public int createGroup(String title, int creatorId, List<Integer> memberIds) {
         if (title == null || title.isBlank()) {
             throw new IllegalArgumentException("Group chat needs a title.");
@@ -98,7 +98,7 @@ public class ChatService {
         return conversationId;
     }
 
-    @Transactional
+    @Transactional("chatTransactionManager")
     public long sendMessage(int conversationId, int senderId, String body) {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Message is empty.");
@@ -111,7 +111,7 @@ public class ChatService {
         return saved.getMessageId();
     }
 
-    @Transactional
+    @Transactional("chatTransactionManager")
     public void markConversationRead(int conversationId, int userId) {
         ParticipantEntity me = participants
                 .findByConversationIdAndUserId(conversationId, userId)
@@ -124,7 +124,7 @@ public class ChatService {
         }
     }
 
-    @Transactional
+    @Transactional("chatTransactionManager")
     public void editMessage(long messageId, int editorId, String newBody) {
         if (newBody == null || newBody.isBlank()) {
             throw new IllegalArgumentException("Message is empty.");
@@ -142,7 +142,7 @@ public class ChatService {
         audit.log(editorId, "MESSAGE_EDITED", "Edited message " + messageId);
     }
 
-    @Transactional
+    @Transactional("chatTransactionManager")
     public void deleteMessage(long messageId, int deleterId) {
         MessageEntity m = messages.findById(messageId)
                 .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
@@ -156,7 +156,7 @@ public class ChatService {
         }
     }
 
-    @Transactional
+    @Transactional("chatTransactionManager")
     public long sendAttachment(int conversationId, int senderId, String fileName, long sizeBytes) {
         if (fileName == null || fileName.isBlank()) {
             throw new IllegalArgumentException("File name is required.");
@@ -177,7 +177,7 @@ public class ChatService {
         return saved.getMessageId();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(value = "chatTransactionManager", readOnly = true)
     public List<ChatMessage> getMessages(int conversationId, int viewerId, int limit) {
         requireParticipant(conversationId, viewerId);
         int cap = limit < 1 ? DEFAULT_MESSAGE_LIMIT : limit;
@@ -212,7 +212,7 @@ public class ChatService {
         return result;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(value = "chatTransactionManager", readOnly = true)
     public List<ConversationSummary> listConversations(int userId) {
         List<ParticipantEntity> mine = participants.findByUserId(userId);
         if (mine.isEmpty()) {

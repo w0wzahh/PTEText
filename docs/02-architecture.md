@@ -16,10 +16,10 @@ HTTP request (Swagger UI, the web client, curl...)
         |        @Transactional on anything that writes.
         |
    repository/   Spring Data JPA interfaces, methods that return entities.
-        |        Derived names, @Query for JPQL, @Procedure for stored procs.
+        |        Split by database: repository/users, /chat, /system.
         |
      entity/     @Entity classes. Java mirror of each table.
-        |        @Table(catalog = "ptetext_x") chooses which database.
+        |        Split by database too: entity/users, /chat, /system.
         v
      MySQL  ->  ptetext_users | ptetext_chat | ptetext_system
 ```
@@ -32,23 +32,36 @@ need data from another slice (e.g. section 4 needs user names), call that
 slice's repository from your service - `ChatService` already shows this
 (`UserRepository` injected next to the chat repos).
 
-## Why one datasource but three databases?
+## Three datasources, three databases
 
-Hibernate generates SQL like `SELECT ... FROM ptetext_chat.messages` thanks
-to the `catalog` attribute on `@Table`. One connection pool, three real
-databases on the same server, simple to configure, still three DBs.
+`config/` has one config class per database: `UsersDbConfig`,
+`ChatDbConfig`, `SystemDbConfig`. Each declares its own `DataSource`,
+`EntityManagerFactory`, and `PlatformTransactionManager`, and
+`@EnableJpaRepositories` binds one `repository/<db>` package to it.
+`application.properties` has a `spring.datasource.<db>.url` block per
+database. So each table is reached through its own connection pool, not a
+shared connection hopping catalogs.
+
+The users unit is `@Primary`, so a plain `@Transactional` (Accounts code)
+uses the users transaction manager. Anything touching chat tables says so
+explicitly: `@Transactional("chatTransactionManager")` in `ChatService`.
+Cross-database calls in one method (e.g. `ChatService` reading user
+display names) just work - each repository still uses its own unit.
 
 ## Stored procedures
 
 Spring Data calls them two ways:
 
 - `@Procedure` on a repository method (`UserRepository.registerUser`,
-  `SessionRepository.openSession` / `cleanupExpired`), for procedures in
-  the default `ptetext_users` database.
-- `EntityManager.createStoredProcedureQuery` (`AuditLogger.log`), needed
-  for `ptetext_system.sp_log_action` because it lives in the other
-  database. Wrap it in a `@Component` like we did; call that bean from
-  services.
+  `SessionRepository.openSession` / `cleanupExpired`) for procedures in
+  `ptetext_users`. The users repos run on the users unit, which has that
+  database as its default, so plain names resolve.
+- `EntityManager.createStoredProcedureQuery` (`AuditLogger.log`), used
+  for `sp_log_action` in `ptetext_system`. `AuditLogger` injects the
+  EntityManager of the `system` persistence unit
+  (`@PersistenceContext(unitName = "system")`), so the call lands in the
+  right database. Wrap procs in a `@Component` like that; services call
+  the bean.
 
 ## Errors
 

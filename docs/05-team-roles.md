@@ -78,5 +78,8 @@ review PRs.
    Never edit an old one, everyone's local DB was built from it.
 4. Actually run the app before opening a PR, hit your endpoint in Swagger
    UI, don't just trust that it compiles.
-5. One datasource, entities pick their DB via `@Table(catalog=...)`, check
-   `entity/` for how. Don't create new database configs.
+5. Each database has its own unit: `config/*DbConfig.java` wires one
+   `repository/<db>` + `entity/<db>` pair to one datasource. Put new
+   entities/repos in the package of the database they belong to and
+   `@Transactional("<db>TransactionManager")` on writes outside
+   ptetext_users. Don't create a fourth database.
