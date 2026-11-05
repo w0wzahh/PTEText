@@ -1,76 +1,91 @@
 package com.ptetext.service;
 
-import com.ptetext.dao.ActivityLogDao;
-import com.ptetext.dao.SessionDao;
-import com.ptetext.dao.UserDao;
-import com.ptetext.model.Session;
-import com.ptetext.model.User;
+import com.ptetext.entity.users.SessionEntity;
+import com.ptetext.entity.users.UserEntity;
+import com.ptetext.repository.users.SessionRepository;
+import com.ptetext.repository.users.UserRepository;
 import com.ptetext.util.PasswordHasher;
 
-import java.sql.SQLException;
-import java.util.Optional;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
 public class AuthService {
 
-    private final UserDao userDao;
-    private final SessionDao sessionDao;
-    private final ActivityLogDao logDao;
+    private static final int SESSION_HOURS = 12;
+
+    private final UserRepository users;
+    private final SessionRepository sessions;
+    private final AuditLogger audit;
     private final LoginThrottle throttle = new LoginThrottle();
 
-    public AuthService(UserDao userDao, SessionDao sessionDao, ActivityLogDao logDao) {
-        this.userDao = userDao;
-        this.sessionDao = sessionDao;
-        this.logDao = logDao;
+    public AuthService(UserRepository users, SessionRepository sessions, AuditLogger audit) {
+        this.users = users;
+        this.sessions = sessions;
+        this.audit = audit;
     }
 
-    public User register(String username, String password, String displayName) throws SQLException {
+    @Transactional
+    public UserEntity register(String username, String password, String displayName) {
         username = username == null ? null : username.trim();
         requireValidUsername(username);
         requireValidPassword(password);
         String name = normalizeDisplayName(username, displayName);
-        if (userDao.findCredentialsByUsername(username).isPresent()) {
+        if (users.existsByUsername(username)) {
             throw new IllegalArgumentException("Username '" + username + "' is already taken.");
         }
         String salt = PasswordHasher.generateSalt();
-        User user = userDao.registerUser(username, PasswordHasher.hashPassword(password, salt), salt, name);
-        logDao.log(user.userId(), "REGISTER", "Account created for @" + username);
-        return user;
+        Integer id = users.registerUser(username,
+                PasswordHasher.hashPassword(password, salt), salt, name);
+        audit.log(id, "REGISTER", "Account created for @" + username);
+        return users.findById(id).orElseThrow();
     }
 
-    public Optional<Session> login(String username, String password) throws SQLException {
+    @Transactional
+    public Optional<SessionEntity> login(String username, String password) {
         String name = username == null ? "" : username.trim();
         if (throttle.isLocked(name)) {
-            logDao.log(null, "LOGIN_LOCKED", "Locked-out login attempt for @" + name);
+            audit.log(null, "LOGIN_LOCKED", "Locked-out login attempt for @" + name);
             throw new IllegalStateException(
                     "Too many failed attempts - try again in " + throttle.remainingSeconds(name) + "s");
         }
-        Optional<UserDao.Credentials> creds = userDao.findCredentialsByUsername(name);
-        if (creds.isEmpty() || !passwordMatches(creds.get(), password)) {
+        Optional<UserEntity> found = users.findByUsername(name);
+        if (found.isEmpty() || !PasswordHasher.verify(
+                password, found.get().getSalt(), found.get().getPasswordHash())) {
             throttle.onFailure(name);
-            logDao.log(null, "LOGIN_FAILED", "Failed login for @" + name);
+            audit.log(null, "LOGIN_FAILED", "Failed login for @" + name);
             return Optional.empty();
         }
         throttle.onSuccess(name);
-        User user = creds.get().user();
-        sessionDao.deleteExpiredSessions();
-        String token = sessionDao.createSession(user.userId());
-        if (PasswordHasher.needsRehash(creds.get().passwordHash())) {
+        UserEntity user = found.get();
+        sessions.cleanupExpired();
+        String token = UUID.randomUUID().toString();
+        sessions.openSession(user.getUserId(), token, SESSION_HOURS);
+        if (PasswordHasher.needsRehash(user.getPasswordHash())) {
             String newSalt = PasswordHasher.generateSalt();
-            userDao.updateCredentials(user.userId(),
-                    PasswordHasher.hashPassword(password, newSalt), newSalt);
+            user.setCredentials(PasswordHasher.hashPassword(password, newSalt), newSalt);
         }
-        userDao.updateLastSeen(user.userId());
-        logDao.log(user.userId(), "LOGIN", "Login successful");
-        return Optional.of(new Session(token, user));
+        user.setLastSeen(LocalDateTime.now());
+        users.save(user);
+        audit.log(user.getUserId(), "LOGIN", "Login successful");
+        return sessions.findById(token);
     }
 
-    public Optional<Integer> validateSession(String sessionId) throws SQLException {
-        return sessionDao.findValidUserId(sessionId);
+    public Optional<Integer> validateSession(String sessionId) {
+        return sessions.findValidUserId(sessionId);
     }
 
-    public void logout(Session session) throws SQLException {
-        sessionDao.invalidate(session.sessionId());
-        logDao.log(session.user().userId(), "LOGOUT", "Session ended");
+    @Transactional
+    public void logout(String sessionId) {
+        sessions.findById(sessionId).ifPresent(s -> {
+            s.invalidate();
+            sessions.save(s);
+            audit.log(s.getUserId(), "LOGOUT", "Session ended");
+        });
     }
 
     private void requireValidUsername(String username) {
@@ -103,9 +118,5 @@ public class AuthService {
             throw new IllegalArgumentException("Display name must be at most 100 characters.");
         }
         return name;
-    }
-
-    private boolean passwordMatches(UserDao.Credentials creds, String password) {
-        return PasswordHasher.verify(password, creds.salt(), creds.passwordHash());
     }
 }

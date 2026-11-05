@@ -23,8 +23,9 @@ The project is a **starting point**. What exists:
 - the database schema + demo data (`sql/`)
 - the DB connection plumbing (`ConnectionFactory`, `DatabaseConfig`)
 - the data model records (`model/`)
-- empty DAO/service classes with TODOs describing exactly what to build
-- **Accounts is done** — register, log in, log out, sessions (section 2 below)
+- JPA entities for every table, Spring Data repositories per database
+- **Accounts is done end-to-end** — `POST /api/auth/register|login|logout`,
+  `GET /api/users`, `GET /api/health` — the reference for your own slice
 
 What's missing: the rest of the features. Those are
 [GitHub Issues](https://github.com/w0wzahh/PTEText/issues) — claim one,
@@ -34,9 +35,15 @@ build it, open a PR.
 
 1. Open **XAMPP Control Panel** -> press **Start** next to **MySQL**.
 2. Double-click `scripts\setup-db.bat` (creates the 3 databases + demo data).
-3. Double-click `scripts\run.bat` (builds and starts the app).
-4. Option `1` lists the demo users; option `3` logs in (try `alice` /
-   `password123`) — that's the accounts slice working.
+3. Double-click `scripts\run.bat` (starts the Spring Boot API on port 8080).
+4. Open **http://localhost:8080/swagger-ui/index.html** — that's the UI.
+   Try `POST /api/auth/login` with `alice` / `password123`, or
+   `GET /api/health` to see all three databases answer.
+
+Stack: **Spring Boot + Spring Data JPA + springdoc-openapi (Swagger UI)**.
+Layers: `controller/` -> `service/` -> `repository/` (Spring Data JPA) ->
+`entity/` -> MySQL. The console UI is retired — REST + Swagger is the front
+end now, exactly like in class.
 
 Full guide with fixes: [docs/04-setup-guide.md](docs/04-setup-guide.md)
 

@@ -1,54 +1,42 @@
 package com.ptetext.service;
 
-import com.ptetext.dao.ActivityLogDao;
-import com.ptetext.dao.AttachmentDao;
-import com.ptetext.dao.ConversationDao;
-import com.ptetext.dao.MessageDao;
-import com.ptetext.dao.UserDao;
+import com.ptetext.repository.chat.ConversationRepository;
+import com.ptetext.repository.chat.MessageRepository;
+import com.ptetext.repository.chat.ParticipantRepository;
+import com.ptetext.repository.system.AttachmentRepository;
+import com.ptetext.repository.users.UserRepository;
 
-import java.sql.Timestamp;
+import org.springframework.stereotype.Service;
 
 /**
- * Messaging logic — where all three databases meet: chat rows in
- * ptetext_chat, display names from ptetext_users, receipts in ptetext_system.
- *
- * TODO — issues #11, #12, #14. Intended API:
- *
- *   int openOrCreateDirectChat(int me, int otherUserId)
- *       — reuse an existing DM, we don't do duplicate chats here
- *   int createGroup(String title, int creatorId, List<Integer> memberIds)
- *       — creator auto-joins as admin (power move), log GROUP_CREATED
- *   long sendMessage(int conversationId, User sender, String body)
- *       — bounce non-members (SecurityException), log MESSAGE_SENT
- *   long sendAttachment(int conversationId, User sender, String fileName, long sizeBytes)
- *       — sends "[attachment] name" + stores metadata in ptetext_system
- *   List<ChatMessage> getMessages(int conversationId, int limit)
- *       — resolve sender names via UserDao (batch lookup, not N queries)
- *   List<ConversationSummary> listConversations(int userId)
- *       — groups get their title, DMs get the other person's name
+ * Messaging logic — section 4's job (issues #11, #12).
+ * Intended API mirrors the old design:
+ *   openOrCreateDirectChat(me, otherUserId)  — reuse DMs, no dupes
+ *   createGroup(title, creatorId, memberIds) — creator = admin, log GROUP_CREATED
+ *   sendMessage(conversationId, sender, body) — bounce non-members, log MESSAGE_SENT
+ *   sendAttachment(...)                        — section 7 ties in here
+ *   getMessages(conversationId, limit)         — resolve sender names via UserRepository
+ *   listConversations(userId)                  — label = title (groups) or other name (DMs)
+ * Use @Transactional on the write paths. Audit via AuditLogger.
  */
+@Service
 public class ChatService {
 
-    /** What the menu shows for one conversation. */
-    public record ConversationSummary(int conversationId, String label, boolean group) {
-    }
+    private final ConversationRepository conversations;
+    private final ParticipantRepository participants;
+    private final MessageRepository messages;
+    private final UserRepository users;
+    private final AttachmentRepository attachments;
+    private final AuditLogger audit;
 
-    /** A message plus its sender's display name (resolved across DBs). */
-    public record ChatMessage(long messageId, String senderName, String body, Timestamp sentAt) {
-    }
-
-    private final ConversationDao conversationDao;
-    private final MessageDao messageDao;
-    private final UserDao userDao;
-    private final AttachmentDao attachmentDao;
-    private final ActivityLogDao logDao;
-
-    public ChatService(ConversationDao conversationDao, MessageDao messageDao,
-                       UserDao userDao, AttachmentDao attachmentDao, ActivityLogDao logDao) {
-        this.conversationDao = conversationDao;
-        this.messageDao = messageDao;
-        this.userDao = userDao;
-        this.attachmentDao = attachmentDao;
-        this.logDao = logDao;
+    public ChatService(ConversationRepository conversations, ParticipantRepository participants,
+                       MessageRepository messages, UserRepository users,
+                       AttachmentRepository attachments, AuditLogger audit) {
+        this.conversations = conversations;
+        this.participants = participants;
+        this.messages = messages;
+        this.users = users;
+        this.attachments = attachments;
+        this.audit = audit;
     }
 }

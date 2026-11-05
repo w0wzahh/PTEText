@@ -14,11 +14,10 @@ if not exist "%MYSQL%" (
     exit /b 1
 )
 
-echo Creating databases and tables...
-"%MYSQL%" -u root < "%SQLDIR%\01_create_databases.sql" || goto :fail
-
-echo Loading demo data...
-"%MYSQL%" -u root < "%SQLDIR%\02_seed_data.sql" || goto :fail
+for %%f in ("%SQLDIR%\0*.sql") do (
+    echo Running %%~nxf ...
+    "%MYSQL%" -u root < "%%f" || goto :fail
+)
 
 echo.
 echo Done! Databases: ptetext_users, ptetext_chat, ptetext_system
