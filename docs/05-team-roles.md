@@ -6,11 +6,16 @@ area — everyone still writes code, tests, and docs for their own slice.
 | # | Who | Slice | Your area |
 |---|-----|-------|-----------|
 | 1 | **w0wzahh** | **Lead / quality check + Foundation + Accounts** | reviews + merges everyone's PRs, keeps `main` working; owns `sql/`, `scripts/`, `pom.xml`, `AuthController`, `AuthService`, `UserRepository`, `SessionRepository`, `PasswordHasher`, `LoginThrottle`, `HealthController` — all **done** |
-| 2 | **jobayed003** | **Chats & messages** | `ChatService` (currently a stub with the intended API), `ChatController`, `MessageRepository`, `ParticipantRepository`, `ConversationRepository` |
+| 2 | **jobayed003** | **Conversations & messages** | `ChatService` (currently a stub with the intended API), `ChatController`, `MessageRepository`, `ParticipantRepository`, `ConversationRepository` |
 | 3 | **panahikamil2-png** | **Contacts** | `ContactRepository` query methods, `ContactService`, `ContactController` |
-| 4 | **leylamova1404-bit** | **Activity log + attachments** | `ActivityLogRepository` queries + `LogController`; `AttachmentRepository` + `AttachmentController` (metadata only — file bytes are stretch) |
-| 5 | **Doomsdaysfall** | **Web client** | a small HTML/JS page in `src/main/resources/static/` calling the API (login → chats → messages). Swagger is the dev UI; yours is the real one |
-| 6 | **KuroNeko951** | **Tests & docs** | `@WebMvcTest`/Mockito tests per controller, fills `tests/` evidence folders, keeps `docs/` accurate as slices land |
+| 4 | **leylamova1404-bit** | **Activity log** | `ActivityLogRepository` queries + `LogController` (`GET /api/logs`) — the audit-viewing half of `ptetext_system` |
+| 5 | **Doomsdaysfall** | **Attachments** | `AttachmentRepository` + `AttachmentService` + `AttachmentController` (metadata only — file bytes are stretch) |
+| 6 | **KuroNeko951** | **Web client / UI** | a small HTML/JS page in `src/main/resources/static/` calling the API (login → chats → messages). Swagger is the dev UI; yours is the real one |
+
+Everyone writes tests + docs for their own slice: Mockito unit tests next
+to your service (copy `service/AuthServiceTest.java`), evidence in
+`tests/<your-section>/`, and your endpoints documented in
+`docs/06-user-manual.md`.
 
 ## How to build your slice — the recipe
 
@@ -46,10 +51,9 @@ example (`AuthController` → `AuthService` → `UserRepository` → `UserEntity
 - **#11** Direct messages — jobayed003, the heart of the app
 - **#12** Group chats — jobayed003, easier once #11 exists
 - **#13** Contacts list — panahikamil2-png, good first issue
-- **#14** Activity log + attachment metadata — leylamova1404-bit,
-  makes the 3rd database visible
-- **web client** — Doomsdaysfall (issue TBD, or just claim this section)
-- **tests/evidence** — KuroNeko951, ongoing — review every PR's tests
+- **#14** Activity log (leylamova1404-bit) + attachment metadata
+  (Doomsdaysfall) — makes the 3rd database visible, split it between you
+- **#15** Web client — KuroNeko951
 
 **Stretch goals (after core):**
 

@@ -116,13 +116,15 @@ Swagger UI / HTTP client
 | Slice | Owner | What it covers | Status |
 |-------|-------|----------------|--------|
 | 1. Foundation + 2. Accounts | **w0wzahh** (lead) | build, schema, `sql/`, scripts, `AuthController`, `AuthService`, `UserRepository`, `SessionRepository`, `PasswordHasher`, `LoginThrottle`, `HealthController` | **done** — the reference implementation, copy its pattern |
-| 3. Contacts | **panahikamil2-png** | `ContactRepository` (+ `@Query` joins to `users`), a `ContactService`, `ContactController` (`GET/POST /api/contacts`) | issue #13 |
-| 4. Chats & messages | **jobayed003** | `ChatService` (the stub is waiting), `ChatController`, message/participant repos (`MessageRepository`, `ParticipantRepository`, `ConversationRepository`) — the heart of the app | issues #11, #12 |
-| 5. Activity log + attachments | **leylamova1404-bit** | `ActivityLogRepository` queries + `LogController` (`GET /api/logs`); `AttachmentRepository` + `AttachmentController` (`POST/GET /api/attachments`) | issue #14 |
-| 6. Web client | **Doomsdaysfall** | a small HTML/JS page in `src/main/resources/static/` that calls the API (login -> chat list -> messages). Swagger is dev UI; this is the real one | new issue — claim it |
-| 7. Tests & docs | **KuroNeko951** | `@WebMvcTest` / Mockito tests per controller, `tests/` evidence folders, keep `docs/` in sync when slices land | ongoing |
+| 3. Conversations & messages | **jobayed003** | `ChatService` (the stub is waiting), `ChatController`, `MessageRepository`, `ParticipantRepository`, `ConversationRepository` — the heart of the app | issues #11, #12 |
+| 4. Contacts | **panahikamil2-png** | `ContactRepository` (+ `@Query` joins to `users`), a `ContactService`, `ContactController` (`GET/POST /api/contacts`) | issue #13 |
+| 5. Activity log | **leylamova1404-bit** | `ActivityLogRepository` queries + `LogController` (`GET /api/logs`) | issue #14 (log half) |
+| 6. Attachments | **Doomsdaysfall** | `AttachmentRepository` + `AttachmentService` + `AttachmentController` (`POST/GET /api/attachments`) | issue #14 (attachment half) + #15 client collab optional |
+| 7. Web client / UI | **KuroNeko951** | a small HTML/JS page in `src/main/resources/static/` that calls the API (login -> chat list -> messages). Swagger is the dev UI; yours is the real one | issue #15 |
 
-Review flow stays the same: branch -> PR -> w0wzahh reviews and merges.
+Everyone writes tests + docs for their own slice (`tests/<yours>/` for
+evidence, `docs/06` for your endpoints). Review flow: branch -> PR ->
+w0wzahh reviews and merges.
 
 ### What's already in place for every slice
 
