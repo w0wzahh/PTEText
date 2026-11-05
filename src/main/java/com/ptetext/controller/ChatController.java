@@ -1,6 +1,7 @@
 package com.ptetext.controller;
 
 import com.ptetext.dto.Dtos.ErrorResponse;
+import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.service.ChatService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -66,5 +69,11 @@ public class ChatController {
     private ResponseEntity<ErrorResponse> notBuilt() {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
                 .body(new ErrorResponse("Not built yet - claimed by section 3 (jobayed003)"));
+    }
+
+    @GetMapping(value="/chat/attatment/findByName/")
+    public List<AttachmentEntity> findFileByName(@PathVariable String name){
+        return chat.findFileName(name);
+
     }
 }

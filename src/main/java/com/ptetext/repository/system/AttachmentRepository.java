@@ -3,6 +3,8 @@ package com.ptetext.repository.system;
 import com.ptetext.entity.system.AttachmentEntity;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,4 +13,11 @@ import java.util.List;
 public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Long> {
 
     List<AttachmentEntity> findByMessageId(Long messageId);
+    @Query(value = "SELECT a FROM Attachments a WHERE a.file_name = :fileName", nativeQuery = true)
+    public List<AttachmentEntity> findByFileName(@Param("fileName") String name);
+
+
+
+
+
 }
