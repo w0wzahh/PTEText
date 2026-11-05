@@ -55,11 +55,14 @@ socket server for live delivery (issues #1–#8).
 ## Architecture in one picture
 
 ```
-ConsoleApp (ui)  -->  AuthService / ChatService (service)  -->  DAOs (dao)
-                                                            |
-                                    ConnectionFactory ------+--> ptetext_users
-                                          (db)              +--> ptetext_chat
-                                                            +--> ptetext_system
+controllers (REST + Swagger)  -->  services  -->  Spring Data JPA repositories
+                                                              |
+                                      one datasource, entities pick their
+                                      database via @Table(catalog=...)
+                                                              |
+                                             +--> ptetext_users
+                                             +--> ptetext_chat
+                                             +--> ptetext_system
 ```
 
 More detail: [02-architecture.md](02-architecture.md) ·

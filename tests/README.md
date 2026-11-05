@@ -16,10 +16,9 @@ section owns:
 
 ```
 src/test/java/com/ptetext/
-├── TestDb.java            helper: builds a ConnectionFactory, checks if MySQL is up
 ├── util/                  PasswordHasherTest (pure unit tests, always run)
-├── dao/                   UserDaoTest, SessionDaoTest (need MySQL - auto-skip if down)
-└── service/               AuthServiceTest (mixed: validation runs anywhere, login needs DB)
+└── service/               AuthServiceTest + LoginThrottleTest
+                             (Mockito — repositories are mocked, no DB needed)
 ```
 
 Rules:

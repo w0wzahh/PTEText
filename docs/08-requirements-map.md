@@ -9,14 +9,14 @@ who-did-what doc, and the .sql/.zip/docs deliverables.
 
 | Table (model) | Attributes | Java model |
 |---------------|-----------|------------|
-| `users` | 7 | `model/User.java` |
-| `contacts` | 5 | `model/Contact.java` |
-| `sessions` | 5 | `model/Session.java` |
-| `conversations` | 5 | `model/Conversation.java` |
-| `conversation_participants` | 5 | (junction — mapped inside DAOs) |
-| `messages` | 7 | `model/Message.java` |
-| `activity_log` | 5 | `model/ActivityLogEntry.java` |
-| `attachments` | 8 | `model/Attachment.java` |
+| `users` | 7 | `entity/users/UserEntity.java` |
+| `contacts` | 5 | `entity/users/ContactEntity.java` |
+| `sessions` | 5 | `entity/users/SessionEntity.java` |
+| `conversations` | 5 | `entity/chat/ConversationEntity.java` |
+| `conversation_participants` | 5 | `entity/chat/ParticipantEntity.java` |
+| `messages` | 7 | `entity/chat/MessageEntity.java` |
+| `activity_log` | 5 | `entity/system/ActivityLogEntity.java` |
+| `attachments` | 8 | `entity/system/AttachmentEntity.java` |
 
 Full column details: [03-database-schema.md](03-database-schema.md)
 
@@ -24,9 +24,9 @@ Full column details: [03-database-schema.md](03-database-schema.md)
 
 | Model | Create | Read | Update | Delete |
 |-------|--------|------|--------|--------|
-| users | `UserDao.registerUser` | `findAll` / `findById` / `searchUsers` / `findCredentialsByUsername` | `updateDisplayName` / `updateCredentials` / `updateLastSeen` | `deleteById` |
-| sessions | `SessionDao.createSession` | `findValidUserId` / `countActiveSessions` | `invalidate` | `deleteExpiredSessions` |
-| activity_log | `ActivityLogDao.log` | `listRecent` *(issue #14)* | — | — |
+| users | `UserRepository.registerUser` (@Procedure) | `findAll` / `findById` / `searchUsers` / `findCredentialsByUsername` | `updateDisplayName` / `updateCredentials` / `updateLastSeen` | `deleteById` |
+| sessions | `SessionRepository.openSession` (@Procedure) | `findValidUserId` / `countActiveSessions` | `invalidate` | `cleanupExpired` (@Procedure) |
+| activity_log | `AuditLogger.log` (StoredProcedureQuery -> sp_log_action) | `listRecent` *(issue #14)* | — | — |
 | others | assigned per-section in GitHub Issues #11–#14 | | | |
 
 ## 3. Seven additional methods — beyond CRUD
@@ -35,10 +35,10 @@ Full column details: [03-database-schema.md](03-database-schema.md)
 
 | # | Method | Calls |
 |---|--------|-------|
-| 1 | `UserDao.registerUser` | `sp_register_user` (ptetext_users) |
-| 2 | `SessionDao.createSession` | `sp_open_session` (ptetext_users) |
+| 1 | `UserRepository.registerUser` (@Procedure) | `sp_register_user` (ptetext_users) |
+| 2 | `SessionRepository.openSession` (@Procedure) | `sp_open_session` (ptetext_users) |
 | 3 | `SessionDao.deleteExpiredSessions` | `sp_cleanup_expired_sessions` (ptetext_users) |
-| 4 | `ActivityLogDao.log` | `sp_log_action` (ptetext_system) — cross-database call |
+| 4 | `AuditLogger.log` (StoredProcedureQuery -> sp_log_action) | `sp_log_action` (ptetext_system) — cross-database call |
 
 **Custom queries (need ≥3, have 5):**
 

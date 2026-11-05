@@ -76,12 +76,13 @@ again — the PR updates itself. Once approved it gets merged. Done.
 
 ## Code style (keep it consistent)
 
-- Java 17, plain JDBC. No new libraries without asking the group first.
+- Java 17, Spring Boot + Spring Data JPA. No new libraries without asking
+  the group first.
 - 4 spaces, no tabs.
-- SQL lives **only** in `dao/` classes — services and UI never write SQL.
-- Always `PreparedStatement` with `?` placeholders — never glue user input
-  into a query string (that's how SQL injection happens).
-- Always `try (Connection conn = ...)` — try-with-resources, so connections
+- Database access lives **only** in `repository/` interfaces — services and
+  controllers never write SQL. Need a custom query? `@Query` JPQL on the
+  repository, never string-built SQL.
+- Write methods in services get `@Transactional`; controllers stay thin.
   close themselves.
 - Comments: short and useful. A little personality is fine, clutter is not.
 - New user action? Log it — copy the `logDao.log(...)` pattern you see in

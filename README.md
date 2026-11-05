@@ -12,18 +12,17 @@ one Java app  --->  three databases (all running in XAMPP)
   ptetext_system  ->  activity log (who did what), file attachments
 ```
 
-This repo is the **base** for a text messaging app. Seven people, seven slices —
-see [The seven sections](#the-seven-sections) for who owns what.
+This repo is the **base** for a text messaging app. Six people, six slices —
+see [Who owns what](#who-owns-what) for the split.
 
 ## Current state: skeleton
 
 The project is a **starting point**. What exists:
 
-- the full project structure + build setup (Maven)
+- the full Spring Boot project structure + build setup (Maven)
 - the database schema + demo data (`sql/`)
-- the DB connection plumbing (`ConnectionFactory`, `DatabaseConfig`)
-- the data model records (`model/`)
-- JPA entities for every table, Spring Data repositories per database
+- JPA entities for every table (`entity/`), Spring Data repositories
+  (`repository/`) ready to grow methods
 - **Accounts is done end-to-end** — `POST /api/auth/register|login|logout`,
   `GET /api/users`, `GET /api/health` — the reference for your own slice
 
@@ -71,112 +70,67 @@ Full guide with fixes: [docs/04-setup-guide.md](docs/04-setup-guide.md)
 
 ```
 PTEText/
-├── config/       database login settings (copy the example file)
 ├── docs/         all our documentation — read me!
 ├── scripts/      double-clickable .bat files (setup-db, run)
 ├── sql/          the .sql files that create the tables + demo data
 ├── tests/        manual test evidence, one folder per section (see tests/README.md)
-├── src/test/java/com/ptetext/   automated JUnit tests — run with `mvn test`
+├── src/test/java/com/ptetext/   automated JUnit/Mockito tests — run with `mvn test`
+├── src/main/resources/
+│   └── application.properties   DB login + Swagger settings (edit for your PC)
 ├── src/main/java/com/ptetext/
-│   ├── Main.java        the app starts here
-│   ├── config/          reads the database settings
-│   ├── db/              opens connections to the 3 databases
-│   ├── model/           simple data classes (User, Message, ...)
-│   ├── dao/             SQL classes — stubs with TODOs (except findAll)
-│   ├── service/         app logic classes — stubs with the intended API
-│   ├── ui/              the text menus you see
-│   └── util/            password hashing
+│   ├── PteTextApplication.java   the app starts here (@SpringBootApplication)
+│   ├── controller/               REST endpoints (@RestController) + Swagger tags
+│   ├── dto/                      request/response records for the API
+│   ├── entity/                   JPA entities, split by database:
+│   │   ├── users/                users, sessions, contacts     -> ptetext_users
+│   │   ├── chat/                 conversations, participants,  -> ptetext_chat
+│   │   │                         messages
+│   │   └── system/               activity_log, attachments     -> ptetext_system
+│   ├── repository/               Spring Data JPA interfaces (add query methods here)
+│   ├── service/                  business logic (@Service) — ChatService is a stub
+│   ├── exception/                @RestControllerAdvice -> clean JSON errors
+│   └── util/                     password hashing, login throttle
 └── pom.xml       Maven config (which libraries we use)
 ```
 
-## The seven sections
+## Who owns what
 
-Seven people, one section each. Together they are the whole app.
+Six people, one slice each. Together they are the whole app.
+How to build your slice: `docs/05-team-roles.md` (the recipe is the same
+for everyone — entities + repos exist already, you add query methods,
+service logic, and a REST controller).
 
 ```
-ConsoleApp  -->  AuthService / ChatService  -->  DAOs
-                                              |
-                          ConnectionFactory --+--> ptetext_users
-                                              +--> ptetext_chat
-                                              +--> ptetext_system
+Swagger UI / HTTP client
+        |
+   controller/            (@RestController, @Tag, @Operation)
+        |
+    service/              (@Service, @Transactional)
+        |
+   repository/            (Spring Data JPA interfaces)
+        |
+     entity/  -->  ptetext_users  |  ptetext_chat  |  ptetext_system
+                    (catalog attr on @Table picks the database)
 ```
 
-### 1. Foundation
+| Slice | Owner | What it covers | Status |
+|-------|-------|----------------|--------|
+| 1. Foundation + 2. Accounts | **w0wzahh** (lead) | build, schema, `sql/`, scripts, `AuthController`, `AuthService`, `UserRepository`, `SessionRepository`, `PasswordHasher`, `LoginThrottle`, `HealthController` | **done** — the reference implementation, copy its pattern |
+| 3. Contacts | **panahikamil2-png** | `ContactRepository` (+ `@Query` joins to `users`), a `ContactService`, `ContactController` (`GET/POST /api/contacts`) | issue #13 |
+| 4. Chats & messages | **jobayed003** | `ChatService` (the stub is waiting), `ChatController`, message/participant repos (`MessageRepository`, `ParticipantRepository`, `ConversationRepository`) — the heart of the app | issues #11, #12 |
+| 5. Activity log + attachments | **leylamova1404-bit** | `ActivityLogRepository` queries + `LogController` (`GET /api/logs`); `AttachmentRepository` + `AttachmentController` (`POST/GET /api/attachments`) | issue #14 |
+| 6. Web client | **Doomsdaysfall** | a small HTML/JS page in `src/main/resources/static/` that calls the API (login -> chat list -> messages). Swagger is dev UI; this is the real one | new issue — claim it |
+| 7. Tests & docs | **KuroNeko951** | `@WebMvcTest` / Mockito tests per controller, `tests/` evidence folders, keep `docs/` in sync when slices land | ongoing |
 
-Build, config, schema, and the only way into MySQL. Nothing else runs without this.
+Review flow stays the same: branch -> PR -> w0wzahh reviews and merges.
 
-**Files:** `pom.xml`, `config/`, `scripts/`, `sql/`, `src/main/java/com/ptetext/config/DatabaseConfig.java`, `src/main/java/com/ptetext/db/ConnectionFactory.java`
+### What's already in place for every slice
 
-**Done:** Maven build, XAMPP MySQL setup scripts, the three databases (`ptetext_users`, `ptetext_chat`, `ptetext_system`), seed data, connection health check.
-
-**To run:** start MySQL in XAMPP → `scripts\setup-db.bat` → `scripts\run.bat`. Need: JDK 17+, Maven, XAMPP, Git.
-
-**To build:** keep `db.properties` working, schema changes as new numbered files in `sql/` (`03_*.sql`, never edit old ones).
-
-### 2. Accounts
-
-Who can use the app: register, log in, stay logged in.
-
-**Files:** `model/User.java`, `model/Session.java`, `dao/UserDao.java`, `dao/SessionDao.java`, `service/AuthService.java`, `util/PasswordHasher.java`
-
-**Database:** `ptetext_users` → `users`, `sessions`
-
-**Done:** `User` / `Session` records, `PasswordHasher` (PBKDF2-HMAC-SHA256, 600k iterations — legacy SHA-256 rows upgrade on login), `UserDao` full CRUD + `displayNamesFor`, `SessionDao` (12h tokens + expired cleanup), `AuthService.register` / `login` / `logout` / `validateSession`, `LoginThrottle` (5 fails/60s → 30s lockout). Login writes a session in `ptetext_users` and a `LOGIN` row in `ptetext_system`; failures log `LOGIN_FAILED` / `LOGIN_LOCKED`.
-
-### 3. Contacts
-
-The friends list used to start chats.
-
-**Files:** `model/Contact.java`, `dao/ContactDao.java`
-
-**Database:** `ptetext_users` → `contacts` (FK to `users`)
-
-**Done:** table, seed data, empty DAO with the intended methods.
-
-**To build (issue #13):** `addContact` (`INSERT ... ON DUPLICATE KEY UPDATE` for nicknames), `listContacts` (JOIN `users` so the UI gets names, not ids). Log `CONTACT_ADDED` via the activity DAO.
-
-### 4. Conversations and messages
-
-The core of the messenger: DMs, group chats, sending and reading texts.
-
-**Files:** `model/Conversation.java`, `model/Message.java`, `dao/ConversationDao.java`, `dao/MessageDao.java`, `service/ChatService.java`
-
-**Database:** `ptetext_chat` → `conversations`, `conversation_participants`, `messages`
-
-**Done:** models, empty DAOs / `ChatService` with the intended API. No sockets — send = insert a row, read = select rows.
-
-**To build (issues #11, #12):** create conversation + participants in one transaction; reuse existing DMs; list chats for a user; send message (reject non-members); list recent non-deleted messages; resolve sender names through `UserDao`. Groups: title, creator as admin, log `GROUP_CREATED`.
-
-### 5. Activity log
-
-The audit trail in the third database — who did what, when.
-
-**Files:** `model/ActivityLogEntry.java`, `dao/ActivityLogDao.java`
-
-**Database:** `ptetext_system` → `activity_log`
-
-**Done:** model, empty DAO with the intended methods.
-
-**To build (issue #14, log half):** `ActivityLogDao.log` must never throw (catch, warn, continue); `listRecent` for the menu. Other sections call `log(...)` when they finish an action. Actions: `REGISTER`, `LOGIN`, `LOGIN_FAILED`, `LOGOUT`, `MESSAGE_SENT`, `GROUP_CREATED`, `CONTACT_ADDED`, `ATTACHMENT_ADDED`.
-
-### 6. Console UI
-
-The menus people actually use. Wires the other sections together.
-
-**Files:** `src/main/java/com/ptetext/Main.java`, `src/main/java/com/ptetext/ui/ConsoleApp.java`
-
-**Done:** startup, DB health print, menu, **List users** (UI → `UserDao` → MySQL). Options 2–7 are stubs.
-
-**To build:** construct `AuthService` / `ChatService` and the DAOs in `ConsoleApp`, then implement menus 2–7 as those sections land. UI talks to services only — no SQL here. Catch `SQLException` and print a short "is XAMPP running?" message.
-
-### 7. Attachments
-
-File metadata pinned to messages (name, type, size — not the file bytes yet).
-
-**Files:** `model/Attachment.java`, `dao/AttachmentDao.java` (plus `ChatService.sendAttachment` when wired)
-
-**Database:** `ptetext_system` → `attachments`
-
-**Done:** model, empty DAO with the intended methods.
-
-**To build (issue #14, attachment half):** `AttachmentDao.insert` / `listForMessage`; store `file_name`, `mime_type`, `size_bytes`. Real file upload is a stretch goal (`stored_path` is reserved). Log `ATTACHMENT_ADDED`.
+- **entities** for all 8 tables (just add fields if your issue needs them)
+- **repositories** for all 8 tables — write derived methods (`findByX`)
+  or `@Query` JPQL; stored procs go through `@Procedure`
+- **DTOs** pattern in `dto/Dtos.java` — add your own records
+- **error handling** — throw `IllegalArgumentException` and it becomes a
+  clean `400 {"error": "..."}` via `GlobalExceptionHandler`
+- **audit** — call `audit.log(userId, "ACTION", "details")` from your
+  service when an action finishes (see `AuthService` for examples)
