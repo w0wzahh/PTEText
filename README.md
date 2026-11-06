@@ -96,8 +96,6 @@ Six people, one slice each. The recipe for building your slice is in
 | Attachments | **Doomsdaysfall** | `AttachmentRepository` + `AttachmentService` + `AttachmentController` | #14 (attachment half) |
 | Web client / UI | **KuroNeko951** | HTML/JS page in `src/main/resources/static/` calling the API | #15 |
 
-Review flow: branch → PR → w0wzahh reviews and merges.
-Everyone writes tests + docs for their own slice.
 
 ## Documentation
 
