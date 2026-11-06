@@ -9,6 +9,10 @@ import com.ptetext.dto.Dtos.MessageIdResponse;
 import com.ptetext.dto.Dtos.OpenDmRequest;
 import com.ptetext.dto.Dtos.ReadRequest;
 import com.ptetext.dto.Dtos.SendMessageRequest;
+import com.ptetext.dto.Dtos.SessionRequest;
+import com.ptetext.dto.Dtos.UpdateMessageRequest;
+import com.ptetext.dto.Dtos.UpdatedMessageDto;
+import com.ptetext.entity.chat.MessageEntity;
 import com.ptetext.service.AuthService;
 import com.ptetext.service.ChatService;
 import com.ptetext.service.ChatService.ChatMessage;
@@ -19,7 +23,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -120,6 +126,37 @@ public class ChatController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{conversationId}/messages/{messageId}")
+    @Operation(summary = "Rewrite a message you sent")
+    public ResponseEntity<?> rewrite(@PathVariable int conversationId,
+                                     @PathVariable long messageId,
+                                     @RequestBody UpdateMessageRequest req) {
+        Optional<Integer> me = auth.validateSession(req.sessionId());
+        if (me.isEmpty()) {
+            return unauthorized();
+        }
+        MessageEntity updated = chat.rewriteMessage(
+                conversationId, messageId, me.get(), req.body());
+        return ResponseEntity.ok(new UpdatedMessageDto(
+                updated.getMessageId(),
+                updated.getBody(),
+                updated.getSentAt(),
+                updated.getEditedAt()));
+    }
+
+    @DeleteMapping("/{conversationId}/messages/{messageId}")
+    @Operation(summary = "Soft-delete a message you sent")
+    public ResponseEntity<?> hide(@PathVariable int conversationId,
+                                  @PathVariable long messageId,
+                                  @RequestBody SessionRequest req) {
+        Optional<Integer> me = auth.validateSession(req.sessionId());
+        if (me.isEmpty()) {
+            return unauthorized();
+        }
+        chat.hideMessage(conversationId, messageId, me.get());
+        return ResponseEntity.noContent().build();
+    }
+
     private ConversationSummaryDto toSummaryDto(ConversationSummary s) {
         return new ConversationSummaryDto(s.conversationId(), s.label(), s.group(),
                 s.unreadCount(), s.lastReadAt());
@@ -127,7 +164,7 @@ public class ChatController {
 
     private ChatMessageDto toMessageDto(ChatMessage m) {
         return new ChatMessageDto(m.messageId(), m.senderName(), m.body(),
-                m.sentAt(), m.read());
+                m.sentAt(), m.editedAt(), m.read());
     }
 
     private ResponseEntity<ErrorResponse> unauthorized() {

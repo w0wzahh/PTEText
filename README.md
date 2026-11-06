@@ -90,7 +90,7 @@ Six people, one slice each. The recipe for building your slice is in
 | Slice | Owner | Covers | Status |
 |-------|-------|--------|--------|
 | Foundation + Accounts | **w0wzahh** (lead) | build, `sql/`, scripts, auth endpoints, sessions, hashing, throttle, health | **done** — copy this pattern |
-| Conversations & messages | **jobayed003** | `ChatService`, `ChatController`, message/participant repos | **done** — `/api/chat` (list, direct, group, send/read) |
+| Conversations & messages | **@jobayed003** | `ChatService`, `ChatController`, message/participant repos | **done** — `/api/chat` (+ edit/soft-delete); see [docs/10](docs/10-conversations-and-messages.md) |
 | Contacts | **panahikamil2-png** | `ContactRepository` queries, `ContactService`, `ContactController` | #13 |
 | Activity log | **leylamova1404-bit** | `ActivityLogRepository` + `LogController` | #14 (log half) |
 | Attachments | **Doomsdaysfall** | `AttachmentRepository` + `AttachmentService` + `AttachmentController` | #14 (attachment half) |
@@ -112,3 +112,4 @@ Everyone writes tests + docs for their own slice.
 | [docs/01-project-concept.md](docs/01-project-concept.md) | the proposal |
 | [docs/08-requirements-map.md](docs/08-requirements-map.md) | assignment requirements → where implemented |
 | [docs/09-sql-queries-and-procedures.md](docs/09-sql-queries-and-procedures.md) | derived methods, @Query JPQL, stored procs — how to query |
+| [docs/10-conversations-and-messages.md](docs/10-conversations-and-messages.md) | section 4: chat API, DMs, groups, edit/soft-delete, read receipts |
