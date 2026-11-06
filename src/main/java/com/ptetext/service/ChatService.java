@@ -33,7 +33,7 @@ public class ChatService {
     }
 
     public record ChatMessage(long messageId, String senderName, String body,
-                              LocalDateTime sentAt, boolean read) {
+                              LocalDateTime sentAt, LocalDateTime editedAt, boolean read) {
     }
 
     private final ConversationRepository conversations;
@@ -125,6 +125,34 @@ public class ChatService {
     }
 
     @Transactional("chatTransactionManager")
+    public MessageEntity rewriteMessage(int conversationId, long messageId, int userId, String body) {
+        requireParticipant(conversationId, userId);
+        String text = requireNonBlankBody(body);
+        MessageEntity message = loadOwnedMessage(conversationId, messageId, userId);
+        if (message.isDeleted()) {
+            throw new IllegalArgumentException("That message was deleted.");
+        }
+        message.replaceBody(text);
+        MessageEntity saved = messages.save(message);
+        audit.log(userId, "MESSAGE_EDITED",
+                "Rewrote message " + messageId + " in conversation " + conversationId);
+        return saved;
+    }
+
+    @Transactional("chatTransactionManager")
+    public void hideMessage(int conversationId, long messageId, int userId) {
+        requireParticipant(conversationId, userId);
+        MessageEntity message = loadOwnedMessage(conversationId, messageId, userId);
+        if (message.isDeleted()) {
+            throw new IllegalArgumentException("That message was already deleted.");
+        }
+        message.softDelete();
+        messages.save(message);
+        audit.log(userId, "MESSAGE_DELETED",
+                "Hid message " + messageId + " in conversation " + conversationId);
+    }
+
+    @Transactional("chatTransactionManager")
     public long sendAttachment(int conversationId, int senderId, String fileName, long sizeBytes) {
         if (fileName == null || fileName.isBlank()) {
             throw new IllegalArgumentException("File name is required.");
@@ -175,7 +203,7 @@ public class ChatService {
             boolean read = readMarks.values().stream()
                     .anyMatch(t -> !t.isBefore(row.getSentAt()));
             result.add(new ChatMessage(row.getMessageId(), name, row.getBody(),
-                    row.getSentAt(), read));
+                    row.getSentAt(), row.getEditedAt(), read));
         }
         return result;
     }
@@ -258,6 +286,26 @@ public class ChatService {
         if (!participants.existsByConversationIdAndUserId(conversationId, userId)) {
             throw new IllegalArgumentException("You are not a member of this conversation.");
         }
+    }
+
+    private String requireNonBlankBody(String body) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Message body is required.");
+        }
+        return body.trim();
+    }
+
+    private MessageEntity loadOwnedMessage(int conversationId, long messageId, int userId) {
+        MessageEntity message = messages.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
+        if (message.getConversationId() != conversationId) {
+            throw new IllegalArgumentException("Message " + messageId
+                    + " is not in conversation " + conversationId);
+        }
+        if (message.getSenderId() != userId) {
+            throw new IllegalArgumentException("Only the sender can change this message.");
+        }
+        return message;
     }
 
     private Map<Integer, String> displayNamesFor(List<Integer> ids) {

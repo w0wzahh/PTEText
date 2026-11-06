@@ -53,6 +53,12 @@ public class MessageEntity {
     public LocalDateTime getEditedAt()  { return editedAt; }
     public boolean isDeleted()          { return deleted; }
 
-    public void markEdited(LocalDateTime editedAt) { this.editedAt = editedAt; }
-    public void markDeleted()                      { this.deleted = true; }
+    public void replaceBody(String newBody) {
+        this.body = newBody;
+        this.editedAt = LocalDateTime.now();
+    }
+
+    public void softDelete() {
+        this.deleted = true;
+    }
 }

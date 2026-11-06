@@ -43,6 +43,9 @@ public final class Dtos {
     public record SendMessageRequest(String sessionId, String body) {
     }
 
+    public record UpdateMessageRequest(String sessionId, String body) {
+    }
+
     public record ReadRequest(String sessionId) {
     }
 
@@ -52,11 +55,15 @@ public final class Dtos {
     public record MessageIdResponse(long messageId) {
     }
 
+    public record UpdatedMessageDto(long messageId, String body, LocalDateTime sentAt,
+                                    LocalDateTime editedAt) {
+    }
+
     public record ConversationSummaryDto(int conversationId, String label, boolean group,
                                          int unreadCount, LocalDateTime lastReadAt) {
     }
 
     public record ChatMessageDto(long messageId, String senderName, String body,
-                                 LocalDateTime sentAt, boolean read) {
+                                 LocalDateTime sentAt, LocalDateTime editedAt, boolean read) {
     }
 }
