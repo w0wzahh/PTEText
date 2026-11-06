@@ -25,13 +25,8 @@ Swagger (or curl/Postman) is how you use the app.
 | `POST /api/chat/{id}/messages` | send — `{"sessionId","body"}` → `201` |
 | `GET /api/chat/{id}/messages?sessionId=` | read messages (read flag shows if others saw it) |
 | `POST /api/chat/{id}/read` | mark conversation read — `{"sessionId"}` → `204` |
-| `PUT /api/chat/messages/{id}` | edit your own message — `{"sessionId","body"}` → `204` |
-| `DELETE /api/chat/messages/{id}?sessionId=` | soft-delete your own message → `204` |
-| `GET /api/chat?sessionId=` | list my conversations (group title / other person's name for DMs) |
-| `POST /api/chat/direct` | open or reuse a DM, body: `{"sessionId","otherUserId"}` |
-| `POST /api/chat/group` | create a group, body: `{"sessionId","title","memberIds":[…]}` |
-| `GET /api/chat/{id}/messages?sessionId=&limit=50` | recent non-deleted messages, oldest-first, with sender names |
-| `POST /api/chat/{id}/messages` | send a text, body: `{"sessionId","body"}` |
+| `PATCH /api/chat/{id}/messages/{messageId}` | rewrite your message — `{"sessionId","body"}` → updated message |
+| `DELETE /api/chat/{id}/messages/{messageId}` | soft-delete your message — body `{"sessionId"}` → `204` |
 
 Demo accounts (password `password123`): `alice`, `bob`, `carol`, `dave`,
 `erin`, `frank`. Seed data already has a DM (alice↔bob) and a "Project Team"
@@ -45,7 +40,10 @@ group — log in as `alice` and `GET /api/chat` to see them.
 3. Save that `sessionId`, it's your token. Chat endpoints need it.
 4. `GET /api/chat?sessionId=...` → your conversations
 5. `POST /api/chat/{id}/messages` with `{"sessionId","body"}` → send a text
-6. Later: `POST /api/auth/logout` with the token → `204`.
+6. Optional: `PATCH /api/chat/{id}/messages/{messageId}` to rewrite; `DELETE` the same path to soft-delete
+7. Later: `POST /api/auth/logout` with the token → `204`.
+
+Full chat slice write-up: [docs/10-conversations-and-messages.md](10-conversations-and-messages.md).
 
 ## Error responses
 

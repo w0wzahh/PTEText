@@ -23,6 +23,14 @@
 and a pull request, and w0wzahh reviews it. This is what keeps the project
 from exploding.
 
+And it's enforced, not just a request: `main` is a protected branch.
+Direct pushes to it get rejected by GitHub ("protected branch" error),
+force-pushes are blocked, and a PR can only merge after w0wzahh approves
+it (see `CODEOWNERS`). If Git refuses your push to `main`, that is the
+protection working, make a branch instead. If your approval got
+dismissed after you pushed new commits to the PR, that is also the
+protection, request the review again.
+
 ## The workflow, step by step
 
 Think of git like saving game files:

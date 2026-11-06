@@ -4,12 +4,15 @@ import com.ptetext.dto.Dtos.ChatMessageDto;
 import com.ptetext.dto.Dtos.ConversationIdResponse;
 import com.ptetext.dto.Dtos.ConversationSummaryDto;
 import com.ptetext.dto.Dtos.CreateGroupRequest;
-import com.ptetext.dto.Dtos.EditMessageRequest;
 import com.ptetext.dto.Dtos.ErrorResponse;
 import com.ptetext.dto.Dtos.MessageIdResponse;
 import com.ptetext.dto.Dtos.OpenDmRequest;
 import com.ptetext.dto.Dtos.ReadRequest;
 import com.ptetext.dto.Dtos.SendMessageRequest;
+import com.ptetext.dto.Dtos.SessionRequest;
+import com.ptetext.dto.Dtos.UpdateMessageRequest;
+import com.ptetext.dto.Dtos.UpdatedMessageDto;
+import com.ptetext.entity.chat.MessageEntity;
 import com.ptetext.service.AuthService;
 import com.ptetext.service.ChatService;
 import com.ptetext.service.ChatService.ChatMessage;
@@ -22,9 +25,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -123,27 +126,34 @@ public class ChatController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/messages/{messageId}")
-    @Operation(summary = "Edit your own message")
-    public ResponseEntity<?> edit(@PathVariable long messageId,
-                                  @RequestBody EditMessageRequest req) {
+    @PatchMapping("/{conversationId}/messages/{messageId}")
+    @Operation(summary = "Rewrite a message you sent")
+    public ResponseEntity<?> rewrite(@PathVariable int conversationId,
+                                     @PathVariable long messageId,
+                                     @RequestBody UpdateMessageRequest req) {
         Optional<Integer> me = auth.validateSession(req.sessionId());
         if (me.isEmpty()) {
             return unauthorized();
         }
-        chat.editMessage(messageId, me.get(), req.body());
-        return ResponseEntity.noContent().build();
+        MessageEntity updated = chat.rewriteMessage(
+                conversationId, messageId, me.get(), req.body());
+        return ResponseEntity.ok(new UpdatedMessageDto(
+                updated.getMessageId(),
+                updated.getBody(),
+                updated.getSentAt(),
+                updated.getEditedAt()));
     }
 
-    @DeleteMapping("/messages/{messageId}")
-    @Operation(summary = "Soft-delete your own message")
-    public ResponseEntity<?> delete(@PathVariable long messageId,
-                                    @RequestParam String sessionId) {
-        Optional<Integer> me = auth.validateSession(sessionId);
+    @DeleteMapping("/{conversationId}/messages/{messageId}")
+    @Operation(summary = "Soft-delete a message you sent")
+    public ResponseEntity<?> hide(@PathVariable int conversationId,
+                                  @PathVariable long messageId,
+                                  @RequestBody SessionRequest req) {
+        Optional<Integer> me = auth.validateSession(req.sessionId());
         if (me.isEmpty()) {
             return unauthorized();
         }
-        chat.deleteMessage(messageId, me.get());
+        chat.hideMessage(conversationId, messageId, me.get());
         return ResponseEntity.noContent().build();
     }
 

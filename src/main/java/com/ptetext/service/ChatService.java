@@ -125,35 +125,31 @@ public class ChatService {
     }
 
     @Transactional("chatTransactionManager")
-    public void editMessage(long messageId, int editorId, String newBody) {
-        if (newBody == null || newBody.isBlank()) {
-            throw new IllegalArgumentException("Message is empty.");
+    public MessageEntity rewriteMessage(int conversationId, long messageId, int userId, String body) {
+        requireParticipant(conversationId, userId);
+        String text = requireNonBlankBody(body);
+        MessageEntity message = loadOwnedMessage(conversationId, messageId, userId);
+        if (message.isDeleted()) {
+            throw new IllegalArgumentException("That message was deleted.");
         }
-        MessageEntity m = messages.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
-        if (m.isDeleted()) {
-            throw new IllegalArgumentException("Cannot edit a deleted message.");
-        }
-        if (m.getSenderId() != editorId) {
-            throw new IllegalArgumentException("You can only edit your own messages.");
-        }
-        m.markEdited(newBody.trim(), LocalDateTime.now());
-        messages.save(m);
-        audit.log(editorId, "MESSAGE_EDITED", "Edited message " + messageId);
+        message.replaceBody(text);
+        MessageEntity saved = messages.save(message);
+        audit.log(userId, "MESSAGE_EDITED",
+                "Rewrote message " + messageId + " in conversation " + conversationId);
+        return saved;
     }
 
     @Transactional("chatTransactionManager")
-    public void deleteMessage(long messageId, int deleterId) {
-        MessageEntity m = messages.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
-        if (m.getSenderId() != deleterId) {
-            throw new IllegalArgumentException("You can only delete your own messages.");
+    public void hideMessage(int conversationId, long messageId, int userId) {
+        requireParticipant(conversationId, userId);
+        MessageEntity message = loadOwnedMessage(conversationId, messageId, userId);
+        if (message.isDeleted()) {
+            throw new IllegalArgumentException("That message was already deleted.");
         }
-        if (!m.isDeleted()) {
-            m.markDeleted();
-            messages.save(m);
-            audit.log(deleterId, "MESSAGE_DELETED", "Deleted message " + messageId);
-        }
+        message.softDelete();
+        messages.save(message);
+        audit.log(userId, "MESSAGE_DELETED",
+                "Hid message " + messageId + " in conversation " + conversationId);
     }
 
     @Transactional("chatTransactionManager")
@@ -288,6 +284,26 @@ public class ChatService {
         if (!participants.existsByConversationIdAndUserId(conversationId, userId)) {
             throw new IllegalArgumentException("You are not a member of this conversation.");
         }
+    }
+
+    private String requireNonBlankBody(String body) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Message body is required.");
+        }
+        return body.trim();
+    }
+
+    private MessageEntity loadOwnedMessage(int conversationId, long messageId, int userId) {
+        MessageEntity message = messages.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("No message with id " + messageId));
+        if (message.getConversationId() != conversationId) {
+            throw new IllegalArgumentException("Message " + messageId
+                    + " is not in conversation " + conversationId);
+        }
+        if (message.getSenderId() != userId) {
+            throw new IllegalArgumentException("Only the sender can change this message.");
+        }
+        return message;
     }
 
     private Map<Integer, String> displayNamesFor(List<Integer> ids) {

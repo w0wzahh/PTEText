@@ -11,16 +11,13 @@ import com.ptetext.repository.users.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,31 +58,88 @@ class ChatServiceTest {
         verify(participants).save(p);
     }
 
+    private void memberOf(int conversationId, int userId) {
+        when(conversations.existsById(conversationId)).thenReturn(true);
+        when(participants.existsByConversationIdAndUserId(conversationId, userId))
+                .thenReturn(true);
+    }
+
     @Test
-    void editRejectsForeignMessage() {
-        when(messages.findById(5L)).thenReturn(
-                Optional.of(new MessageEntity(1, 7, "not yours")));
+    void rewriteRejectsNonMember() {
+        when(conversations.existsById(9)).thenReturn(true);
+        when(participants.existsByConversationIdAndUserId(9, 1)).thenReturn(false);
         assertThrows(IllegalArgumentException.class,
-                () -> chat.editMessage(5L, 1, "mine now"));
+                () -> chat.rewriteMessage(9, 5L, 1, "hi"));
+    }
+
+    @Test
+    void rewriteRejectsBlankBody() {
+        memberOf(1, 1);
+        assertThrows(IllegalArgumentException.class,
+                () -> chat.rewriteMessage(1, 5L, 1, "  "));
         verify(messages, never()).save(any());
     }
 
     @Test
-    void editStampsEditedAt() {
+    void rewriteRejectsMessageFromOtherConversation() {
+        memberOf(1, 1);
+        when(messages.findById(5L)).thenReturn(
+                Optional.of(new MessageEntity(2, 1, "elsewhere")));
+        assertThrows(IllegalArgumentException.class,
+                () -> chat.rewriteMessage(1, 5L, 1, "hi"));
+        verify(messages, never()).save(any());
+    }
+
+    @Test
+    void rewriteRejectsForeignMessage() {
+        memberOf(1, 1);
+        when(messages.findById(5L)).thenReturn(
+                Optional.of(new MessageEntity(1, 7, "not yours")));
+        assertThrows(IllegalArgumentException.class,
+                () -> chat.rewriteMessage(1, 5L, 1, "mine now"));
+        verify(messages, never()).save(any());
+    }
+
+    @Test
+    void rewriteSetsBodyAndEditedAt() {
+        memberOf(1, 1);
         MessageEntity m = new MessageEntity(1, 1, "original");
         when(messages.findById(5L)).thenReturn(Optional.of(m));
-        chat.editMessage(5L, 1, "fixed typo");
-        assertNotNull(m.getEditedAt());
+        when(messages.save(m)).thenReturn(m);
+        MessageEntity saved = chat.rewriteMessage(1, 5L, 1, "  fixed typo  ");
+        assertEquals("fixed typo", saved.getBody());
+        assertNotNull(saved.getEditedAt());
         verify(messages).save(m);
     }
 
     @Test
-    void deleteIsSoftAndSenderOnly() {
+    void hideMarksDeleted() {
+        memberOf(1, 1);
         MessageEntity m = new MessageEntity(1, 1, "secret");
         when(messages.findById(5L)).thenReturn(Optional.of(m));
-        chat.deleteMessage(5L, 1);
+        chat.hideMessage(1, 5L, 1);
         assertTrue(m.isDeleted());
+        verify(messages).save(m);
+    }
+
+    @Test
+    void hideRejectsForeignMessage() {
+        memberOf(1, 1);
+        when(messages.findById(5L)).thenReturn(
+                Optional.of(new MessageEntity(1, 7, "not yours")));
         assertThrows(IllegalArgumentException.class,
-                () -> chat.deleteMessage(5L, 2));
+                () -> chat.hideMessage(1, 5L, 1));
+        verify(messages, never()).save(any());
+    }
+
+    @Test
+    void hideRejectsAlreadyDeleted() {
+        memberOf(1, 1);
+        MessageEntity m = new MessageEntity(1, 1, "gone");
+        m.softDelete();
+        when(messages.findById(5L)).thenReturn(Optional.of(m));
+        assertThrows(IllegalArgumentException.class,
+                () -> chat.hideMessage(1, 5L, 1));
+        verify(messages, never()).save(any());
     }
 }
