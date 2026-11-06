@@ -1,9 +1,4 @@
 @echo off
-REM ============================================================
-REM  PTEText test kit - stop-app
-REM  Kills ONLY the process listening on :8080. Surgical, does
-REM  not murder every java.exe on the machine.
-REM ============================================================
 setlocal
 
 set PID=

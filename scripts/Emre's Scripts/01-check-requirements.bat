@@ -1,9 +1,4 @@
 @echo off
-REM ============================================================
-REM  PTEText test kit - step 1: environment check
-REM  Verifies every tool the project needs is actually on this
-REM  machine, with versions. Run this first, always.
-REM ============================================================
 setlocal EnableDelayedExpansion
 set FAILS=0
 
@@ -12,7 +7,6 @@ echo   PTEText - environment check
 echo ============================================================
 echo.
 
-REM --- Java: need JDK 17 or newer ------------------------------
 echo [Java]
 where java >nul 2>&1
 if errorlevel 1 (
@@ -21,7 +15,6 @@ if errorlevel 1 (
 ) else (
     for /f "tokens=3" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do set JVER=%%~v
     echo   OK - found !JVER!
-    REM Pull the major version out (first number before the dot) and check 17+
     for /f "delims=. tokens=1" %%m in ("!JVER!") do set JAVAMAJ=%%m
     if !JAVAMAJ! LSS 17 (
         echo   FAIL - Java !JAVAMAJ! is too old, the project needs 17+.
@@ -32,7 +25,6 @@ if errorlevel 1 (
 )
 echo.
 
-REM --- Maven ----------------------------------------------------
 echo [Maven]
 where mvn >nul 2>&1
 if errorlevel 1 (
@@ -45,7 +37,6 @@ if errorlevel 1 (
 )
 echo.
 
-REM --- MySQL (XAMPP) --------------------------------------------
 echo [MySQL]
 set MYSQL=C:\xampp\mysql\bin\mysql.exe
 if not exist "%MYSQL%" (
@@ -64,7 +55,6 @@ if not exist "%MYSQL%" (
 )
 echo.
 
-REM --- Is the server itself answering? --------------------------
 echo [MySQL server]
 "%MYSQL%" -u root -e "SELECT 1" >nul 2>&1
 if errorlevel 1 (
@@ -76,7 +66,6 @@ if errorlevel 1 (
 )
 echo.
 
-REM --- curl (for the API checks later) --------------------------
 echo [curl]
 where curl >nul 2>&1
 if errorlevel 1 (
@@ -88,7 +77,6 @@ if errorlevel 1 (
 )
 echo.
 
-REM --- Verdict --------------------------------------------------
 echo ============================================================
 if %FAILS%==0 (
     echo   RESULT: all tools present. Move on to 02-check-databases.

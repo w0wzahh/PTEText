@@ -1,13 +1,4 @@
 @echo off
-REM ============================================================
-REM  PTEText test kit - the big red button
-REM  Runs everything in order:
-REM    1. environment check
-REM    2. database check
-REM    3. unit tests
-REM    4. live API check (boots the app itself if needed)
-REM  One answer at the end: does the whole project work or not.
-REM ============================================================
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 set OVERALL=0
@@ -19,7 +10,6 @@ echo   Sit back, this takes about a minute.
 echo ############################################################
 echo.
 
-REM ==== 1. Environment ==========================================
 call "01-check-requirements.bat"
 if errorlevel 1 (
     echo.
@@ -29,17 +19,14 @@ if errorlevel 1 (
 )
 echo.
 
-REM ==== 2. Databases ============================================
 call "02-check-databases.bat"
 if errorlevel 1 set /a OVERALL+=1
 echo.
 
-REM ==== 3. Unit tests ===========================================
 call "03-run-tests.bat"
 if errorlevel 1 set /a OVERALL+=1
 echo.
 
-REM ==== 4. Live API =============================================
 curl -s --max-time 3 -o nul http://localhost:8080/api/health 2>nul
 if errorlevel 1 (
     echo App is not running - booting it in a separate window.
@@ -67,7 +54,6 @@ if errorlevel 1 (
 )
 echo.
 
-REM ==== Final verdict ===========================================
 echo ############################################################
 if %OVERALL%==0 (
     echo   FINAL: everything passes. The project works.
