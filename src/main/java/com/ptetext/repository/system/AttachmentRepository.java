@@ -12,11 +12,17 @@ import java.util.List;
 @Repository
 public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Long> {
 
-    List<AttachmentEntity> findByMessageId(Long messageId);
-    @Query(value = "SELECT * FROM Attachments WHERE file_name = :fileName", nativeQuery = true)
-    public List<AttachmentEntity> findFileByName(@Param("fileName") String name);
+    @Query(value = "SELECT * FROM attachments WHERE file_name = :fileName", nativeQuery = true)
+    List<AttachmentEntity> findFileByName(@Param("fileName") String name);
 
+    @Query(value = "SELECT * FROM attachments WHERE attachment_id = :attachmentId", nativeQuery = true)
+    List<AttachmentEntity> findFileByAttachmentId(@Param("attachmentId") Long id);
 
+    @Query(value = "SELECT * FROM attachments WHERE message_id = :messageId", nativeQuery = true)
+    List<AttachmentEntity> findFileByMessageId(@Param("messageId") Long id);
+
+    @Query(value = "SELECT * FROM attachments WHERE uploader_id = :uploaderId", nativeQuery = true)
+    List<AttachmentEntity> findFileByUploaderId(@Param("uploaderId") int id);
 
 
 

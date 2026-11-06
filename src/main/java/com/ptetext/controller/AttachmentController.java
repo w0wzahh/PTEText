@@ -16,7 +16,21 @@ public class AttachmentController {
     private AttachmentService service;
 
     @GetMapping(value = "/attachment/findFileByName/{fileName}")
-    public List<AttachmentEntity> findfileByName(@PathVariable("fileName") String fileName) {
+    public List<AttachmentEntity> findFileByName(@PathVariable("fileName") String fileName) {
         return service.findFileByName(fileName);
+    }
+    @GetMapping(value = "/attachment/findFileByAttachmentId/{attachmentId}")
+    public List<AttachmentEntity> findFileByAttachmentId(@PathVariable("attachmentId") Long id) {
+        return service.findFileByAttachmentId(id);
+    }
+
+    @GetMapping(value = "/attachment/findFileByMessageId/{messageId}")
+    public List<AttachmentEntity> findFileByMessageId(@PathVariable("messageId") Long id) {
+        return service.findFileByMessageId(id);
+    }
+
+    @GetMapping(value = "/attachment/findFileByUploaderId/{uploaderId}")
+    public List<AttachmentEntity> findFileByUploaderId(@PathVariable("uploaderId") int id) {
+        return service.findFileByUploaderId(id);
     }
 }

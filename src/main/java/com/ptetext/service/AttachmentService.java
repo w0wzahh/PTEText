@@ -12,7 +12,8 @@ import java.util.List;
 public class AttachmentService {
     @Autowired
     private AttachmentRepository repo;
-   public List<AttachmentEntity> findFileByName(String name) {
+
+    public List<AttachmentEntity> findFileByName(String name) {
        List<AttachmentEntity> attchEntList = repo.findFileByName(name);
 
        if (attchEntList == null) {
@@ -20,5 +21,32 @@ public class AttachmentService {
        }
        return attchEntList;
    }
+
+    public List<AttachmentEntity> findFileByAttachmentId(Long id) {
+        List<AttachmentEntity> attchEntList = repo.findFileByAttachmentId(id);
+
+        if (attchEntList == null) {
+            throw new NoFileFoundException(id+" was not found!");
+        }
+        return attchEntList;
+    }
+
+    public List<AttachmentEntity> findFileByMessageId(Long id) {
+        List<AttachmentEntity> attchEntList = repo.findFileByMessageId(id);
+
+        if (attchEntList == null) {
+            throw new NoFileFoundException(id+" was not found!");
+        }
+        return attchEntList;
+    }
+
+    public List<AttachmentEntity> findFileByUploaderId(int id) {
+        List<AttachmentEntity> attchEntList = repo.findFileByUploaderId(id);
+
+        if (attchEntList == null) {
+            throw new NoFileFoundException(id+" was not found!");
+        }
+        return attchEntList;
+    }
 
 }
