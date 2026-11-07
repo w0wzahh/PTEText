@@ -22,6 +22,6 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(NoFileFoundException.class)
     public ResponseEntity<ErrorResponse> NoFileFound(NoFileFoundException e) {
-        return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(e.getMessage()));
     }
 }

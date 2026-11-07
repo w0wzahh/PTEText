@@ -2,35 +2,48 @@ package com.ptetext.controller;
 
 import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.service.AttachmentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.ptetext.service.AuthService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 
 @RestController
+@RequestMapping("/api/attachment")
+@Tag(name = "Attachment")
 public class AttachmentController {
-    @Autowired
-    private AttachmentService service;
 
-    @GetMapping(value = "/attachment/findFileByName/{fileName}")
+
+    private AttachmentService attachment;
+    private AuthService auth;
+
+    public AttachmentController(AttachmentService attachment, AuthService auth) {
+        this.attachment = attachment;
+        this.auth = auth;
+    }
+
+    @GetMapping(value = "/findFileByName/{fileName}")
     public List<AttachmentEntity> findFileByName(@PathVariable("fileName") String fileName) {
-        return service.findFileByName(fileName);
+        return attachment.findFileByName(fileName);
     }
-    @GetMapping(value = "/attachment/findFileByAttachmentId/{attachmentId}")
-    public List<AttachmentEntity> findFileByAttachmentId(@PathVariable("attachmentId") Long id) {
-        return service.findFileByAttachmentId(id);
+    @GetMapping(value = "/findFileByAttachmentId/{attachmentId}")
+    public Optional<AttachmentEntity> findFileByAttachmentId(@PathVariable("attachmentId") Long id) {
+        return attachment.findFileByAttachmentId(id);
     }
 
-    @GetMapping(value = "/attachment/findFileByMessageId/{messageId}")
+    @GetMapping(value = "/findFileByMessageId/{messageId}")
     public List<AttachmentEntity> findFileByMessageId(@PathVariable("messageId") Long id) {
-        return service.findFileByMessageId(id);
+        return attachment.findFileByMessageId(id);
     }
 
-    @GetMapping(value = "/attachment/findFileByUploaderId/{uploaderId}")
+    @GetMapping(value = "/findFileByUploaderId/{uploaderId}")
     public List<AttachmentEntity> findFileByUploaderId(@PathVariable("uploaderId") int id) {
-        return service.findFileByUploaderId(id);
+        return attachment.findFileByUploaderId(id);
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Long> {
@@ -16,7 +17,7 @@ public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Lo
     List<AttachmentEntity> findFileByName(@Param("fileName") String name);
 
     @Query(value = "SELECT * FROM attachments WHERE attachment_id = :attachmentId", nativeQuery = true)
-    List<AttachmentEntity> findFileByAttachmentId(@Param("attachmentId") Long id);
+    Optional<AttachmentEntity> findFileByAttachmentId(@Param("attachmentId") Long id);
 
     @Query(value = "SELECT * FROM attachments WHERE message_id = :messageId", nativeQuery = true)
     List<AttachmentEntity> findFileByMessageId(@Param("messageId") Long id);
