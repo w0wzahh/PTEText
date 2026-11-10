@@ -78,3 +78,25 @@ BEGIN
     VALUES (p_user_id, p_action, p_details);
 END //
 DELIMITER ;
+
+-- ---------------------------------------------------------------------------
+-- Stored procedure 5: upload a file
+-- ---------------------------------------------------------------------------
+USE ptetext_system;
+DROP PROCEDURE IF EXISTS sp_file_upload;
+DELIMITER //
+CREATE PROCEDURE sp_file_upload(
+    IN p_message_id BIGINT(20),
+    IN p_uploader_id INT(11),
+    IN p_file_name VARCHAR(255),
+    IN p_mime_type VARCHAR(100),
+    IN p_size_bytes BIGINT(20),
+    IN p_stored_path VARCHAR(500),
+    IN p_uploaded_at timestamp
+)
+BEGIN
+    INSERT INTO attachments (message_id, uploader_id, file_name, mime_type, size_bytes, stored_path, uploaded_at)
+    VALUES (p_message_id, p_uploader_id, p_file_name, p_mime_type,
+            p_size_bytes,p_stored_path, p_uploaded_at);
+END //
+DELIMITER ;
