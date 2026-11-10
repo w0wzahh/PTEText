@@ -9,10 +9,10 @@
 -- ============================================================================
 
 ALTER TABLE ptetext_users.contacts
-    ADD COLUMN is_favorite TINYINT(1) NOT NULL DEFAULT 0 AFTER nickname;
+    ADD COLUMN IF NOT EXISTS is_favorite TINYINT(1) NOT NULL DEFAULT 0 AFTER nickname;
 
 ALTER TABLE ptetext_chat.conversation_participants
-    ADD COLUMN last_read_at TIMESTAMP NULL DEFAULT NULL AFTER joined_at;
+    ADD COLUMN IF NOT EXISTS last_read_at TIMESTAMP NULL DEFAULT NULL AFTER joined_at;
 
 -- ---------------------------------------------------------------------------
 -- Stored procedure 1: register a user, hand back the new id
@@ -76,5 +76,27 @@ CREATE PROCEDURE sp_log_action(
 BEGIN
     INSERT INTO activity_log (user_id, action, details)
     VALUES (p_user_id, p_action, p_details);
+END //
+DELIMITER ;
+
+-- ---------------------------------------------------------------------------
+-- Stored procedure 5: upload a file
+-- ---------------------------------------------------------------------------
+USE ptetext_system;
+DROP PROCEDURE IF EXISTS sp_file_upload;
+DELIMITER //
+CREATE PROCEDURE sp_file_upload(
+    IN p_message_id BIGINT(20),
+    IN p_uploader_id INT(11),
+    IN p_file_name VARCHAR(255),
+    IN p_mime_type VARCHAR(100),
+    IN p_size_bytes BIGINT(20),
+    IN p_stored_path VARCHAR(500),
+    IN p_uploaded_at timestamp
+)
+BEGIN
+    INSERT INTO attachments (message_id, uploader_id, file_name, mime_type, size_bytes, stored_path, uploaded_at)
+    VALUES (p_message_id, p_uploader_id, p_file_name, p_mime_type,
+            p_size_bytes,p_stored_path, p_uploaded_at);
 END //
 DELIMITER ;
