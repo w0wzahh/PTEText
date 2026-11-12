@@ -1,9 +1,9 @@
-# Setup Guide — getting PTEText running on your machine
+# Setup Guide, getting PTEText running on your machine
 
 Do this once. Takes about 10 minutes. If you get stuck, check the
 troubleshooting table at the bottom, or ask in the group chat.
 
-## Step 1 — install the tools
+## Step 1, install the tools
 
 You need four things:
 
@@ -11,32 +11,32 @@ You need four things:
 |------|---------------|--------|----------------|
 | XAMPP | runs our MySQL databases | <https://www.apachefriends.org/> | the Control Panel opens |
 | Java JDK 17+ | runs the app | <https://adoptium.net/> (or it might already be installed) | `java -version` in a terminal |
-| Maven | builds the app | <https://maven.apache.org/> — **or skip this**: IntelliJ/Eclipse/NetBeans already include Maven | `mvn -version` |
+| Maven | builds the app | <https://maven.apache.org/> - **or skip this**: IntelliJ/Eclipse/NetBeans already include Maven | `mvn -version` |
 | Git | downloads + shares the code | <https://git-scm.com/> | `git --version` |
 
-## Step 2 — get the code
+## Step 2, get the code
 
 ```
 git clone https://github.com/w0wzahh/PTEText.git
 cd PTEText
 ```
 
-(Accept the GitHub invite first — check your email.)
+(Accept the GitHub invite first, check your email.)
 
-## Step 3 — start the database
+## Step 3, start the database
 
 1. Open the **XAMPP Control Panel**.
 2. Click **Start** next to **MySQL**. (Apache is NOT needed.)
 3. It should turn green. If it doesn't, see troubleshooting below.
 
-## Step 4 — create the databases
+## Step 4, create the databases
 
 **Easy way (Windows):** double-click `scripts\setup-db.bat`.
 
 **Other way (phpMyAdmin, works everywhere):**
 
 1. Open <http://localhost/phpmyadmin> in your browser (Apache needs to be
-   running for this one — press Start next to Apache too).
+   running for this one, press Start next to Apache too).
 2. Click the **SQL** tab at the top.
 3. Open `sql/01_create_databases.sql` in a text editor, copy everything,
    paste it in, press **Go**.
@@ -46,7 +46,7 @@ You should now see three new databases in the left sidebar:
 `ptetext_users`, `ptetext_chat`, `ptetext_system`. Click them to see the
 tables inside.
 
-## Step 5 — run the app
+## Step 5, run the app
 
 Double-click `scripts\run.bat`, or in a terminal inside the project folder:
 
@@ -81,7 +81,7 @@ By default the app connects as MySQL user `root` with an empty password
    `config/db.properties`
 2. Edit the values inside.
 
-This file is git-ignored — your password never goes to GitHub.
+This file is git-ignored, your password never goes to GitHub.
 
 ## Troubleshooting
 

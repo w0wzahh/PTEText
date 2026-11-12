@@ -1,4 +1,5 @@
 @echo off
-REM Build + run in one step (needs JDK 17+ and Maven on PATH)
+REM Build + run the API (needs JDK 17+ and Maven on PATH)
+REM Swagger UI:  http://localhost:8080/swagger-ui/index.html
 cd /d "%~dp0.."
-mvn -q compile exec:java
+mvn spring-boot:run

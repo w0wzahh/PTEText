@@ -1,81 +1,90 @@
-# Architecture — how the code is organized
+# Architecture, how the code is organized
 
-## The big idea
+The restaurant analogy: customers (HTTP requests) talk to the **waiter**
+(controller), who talks to the **kitchen** (service), which takes food from
+the **pantry** (repository). Nobody talks to the pantry directly.
 
-The code is split into layers, like a restaurant:
-
-```
-ConsoleApp (ui)        = the waiter — shows menus, takes your order
-AuthService/ChatService (service) = the kitchen — decides what happens
-DAOs (dao)             = the pantry staff — they fetch/store things in the DBs
-ConnectionFactory (db) = the door to the pantry — the ONLY way in
-DatabaseConfig (config)= the address book — knows where the DBs are
-```
-
-**Golden rule:** each layer only talks to the one below it. The UI never
-writes SQL. DAOs never print menus. If you find yourself breaking this,
-you're probably putting code in the wrong file — ask the group.
-
-## Package map (src/main/java/com/ptetext)
-
-| Folder | What's inside | Example |
-|--------|---------------|---------|
-| `ptetext` | the entry point | `Main` |
-| `config` | reads `config/db.properties` | `DatabaseConfig` |
-| `db` | opens connections to the 3 databases | `ConnectionFactory` |
-| `model` | plain data holders (Java records) | `User`, `Message`, `Conversation` |
-| `dao` | classes that run SQL — one per area | `UserDao`, `MessageDao` |
-| `service` | the app's actual logic, combines DAOs | `AuthService`, `ChatService` |
-| `ui` | the text menus | `ConsoleApp` |
-| `util` | helper stuff | `PasswordHasher` |
-
-## The three databases
-
-`ConnectionFactory` is the only place that knows the database names.
-Each DAO calls the connection for its own domain:
+## The layers
 
 ```
-DAO                uses        database          stores
------------------  ---------   ---------------   --------------------------
-UserDao            users()     ptetext_users     accounts + password hashes
-SessionDao         users()     ptetext_users     login tokens
-ContactDao         users()     ptetext_users     friends lists
-ConversationDao    chat()      ptetext_chat      chats + who's in them
-MessageDao         chat()      ptetext_chat      the messages
-ActivityLogDao     system()    ptetext_system    the "who did what" log
-AttachmentDao      system()    ptetext_system    file metadata
+HTTP request (Swagger UI, the web client, curl...)
+        |
+   controller/   @RestController classes. URLs in, JSON out. Thin.
+        |        DTOs in dto/ describe request/response bodies.
+        |
+    service/     @Service classes, the actual decisions.
+        |        @Transactional on anything that writes.
+        |
+   repository/   Spring Data JPA interfaces, methods that return entities.
+        |        Split by database: repository/users, /chat, /system.
+        |
+     entity/     @Entity classes. Java mirror of each table.
+        |        Split by database too: entity/users, /chat, /system.
+        v
+     MySQL  ->  ptetext_users | ptetext_chat | ptetext_system
 ```
 
-### One action can touch several databases
+## Golden rule
 
-(These are the target flows — the features behind them are open issues.)
+**Controllers never talk to repositories that aren't theirs, and never to
+entities' fields directly, everything goes through the service.** If you
+need data from another slice (e.g. section 4 needs user names), call that
+slice's repository from your service - `ChatService` already shows this
+(`UserRepository` injected next to the chat repos).
 
-- **Logging in:** check password (users DB) -> create session row (users DB)
-  -> write `LOGIN` in the audit log (system DB)
-- **Sending a message:** check you're in the conversation + save message
-  (chat DB) -> write `MESSAGE_SENT` in the audit log (system DB)
-- **Reading messages:** load the message rows (chat DB) -> look up the
-  senders' names (users DB)
+## Three datasources, three databases
 
-### Why no foreign keys between databases?
+`config/` has one config class per database: `UsersDbConfig`,
+`ChatDbConfig`, `SystemDbConfig`. Each declares its own `DataSource`,
+`EntityManagerFactory`, and `PlatformTransactionManager`, and
+`@EnableJpaRepositories` binds one `repository/<db>` package to it.
+`application.properties` has a `spring.datasource.<db>.url` block per
+database. So each table is reached through its own connection pool, not a
+shared connection hopping catalogs.
 
-`messages.sender_id` points at `users.user_id`, but they live in different
-databases. Instead of cross-database keys, the service layer resolves the
-references (e.g. `UserDao.displayNamesFor()` looks up names in bulk). This
-mirrors how real systems with separate data stores work.
+The users unit is `@Primary`, so a plain `@Transactional` (Accounts code)
+uses the users transaction manager. Anything touching chat tables says so
+explicitly: `@Transactional("chatTransactionManager")` in `ChatService`.
+Cross-database calls in one method (e.g. `ChatService` reading user
+display names) just work - each repository still uses its own unit.
 
-## How chatting will work
+## Stored procedures
 
-No socket server in this design. Clients talk through the shared MySQL
-server: sending a message = inserting a row, reading = selecting rows.
-Another person sees your message next time they refresh. Two instances of
-the app can chat with each other as long as they share the same MySQL.
+Spring Data calls them two ways:
 
-## Error handling (the short version)
+- `@Procedure` on a repository method (`UserRepository.registerUser`,
+  `SessionRepository.openSession` / `cleanupExpired`) for procedures in
+  `ptetext_users`. The users repos run on the users unit, which has that
+  database as its default, so plain names resolve.
+- `EntityManager.createStoredProcedureQuery` (`AuditLogger.log`), used
+  for `sp_log_action` in `ptetext_system`. `AuditLogger` injects the
+  EntityManager of the `system` persistence unit
+  (`@PersistenceContext(unitName = "system")`), so the call lands in the
+  right database. Wrap procs in a `@Component` like that; services call
+  the bean.
 
-- If a DAO fails, the UI catches it and prints a friendly message
-  ("is XAMPP running?") instead of crashing.
-- Audit logging never breaks anything — if it fails it just prints a
-  warning. A log entry is never worth killing a user's message.
-- Creating a conversation runs in a transaction, so you can't end up with
-  a chat that has no members.
+## Errors
+
+Throw `IllegalArgumentException` for bad input (→ `400`) and
+`IllegalStateException` for "not allowed right now" (→ `429`).
+`exception/GlobalExceptionHandler` turns them into clean JSON, your
+controller never needs a try/catch.
+
+## What lives where
+
+| Package | What's inside | Who mainly edits it |
+|---------|---------------|---------------------|
+| `controller/` | `AuthController`, `UserController`, `HealthController` (+ yours) | each slice adds its own |
+| `dto/` | `Dtos.java`, request/response records | each slice adds records |
+| `entity/` | `users/`, `chat/`, `system/` - `@Entity` per table | rarely (schema = `sql/`) |
+| `repository/` | matching interfaces per entity | each slice adds query methods |
+| `service/` | `AuthService` (done), `ChatService` (stub), `AuditLogger` (shared), `LoginThrottle` | each slice adds one |
+| `exception/` | `GlobalExceptionHandler` | nobody, it's shared |
+| `util/` | `PasswordHasher` | accounts only |
+
+## Testing
+
+`src/test/java` mirrors `main`. Tests are Mockito-based, repositories are
+mocked, so `mvn test` works even with XAMPP off. Copy
+`service/AuthServiceTest.java` as the pattern. Manual evidence goes in
+`tests/<your-section>/` (see `tests/README.md`).

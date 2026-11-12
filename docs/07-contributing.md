@@ -1,10 +1,10 @@
-# Contributing — how we work together (git explained from zero)
+# Contributing, how we work together (git explained from zero)
 
-## Step 0 — get access
+## Step 0, get access
 
 1. Make a GitHub account if you don't have one. Send your username to
    **w0wzahh**.
-2. You'll get an invite — accept it (check your email or
+2. You'll get an invite, accept it (check your email or
    github.com/notifications).
 3. Download the code:
 
@@ -22,6 +22,14 @@
 **Nobody pushes straight to `main`.** Every change goes through a branch
 and a pull request, and w0wzahh reviews it. This is what keeps the project
 from exploding.
+
+And it's enforced, not just a request: `main` is a protected branch.
+Direct pushes to it get rejected by GitHub ("protected branch" error),
+force-pushes are blocked, and a PR can only merge after w0wzahh approves
+it (see `CODEOWNERS`). If Git refuses your push to `main`, that is the
+protection working, make a branch instead. If your approval got
+dismissed after you pushed new commits to the PR, that is also the
+protection, request the review again.
 
 ## The workflow, step by step
 
@@ -66,38 +74,51 @@ git push -u origin feature/my-thing
 ```
 
 **5. Open a Pull Request** on GitHub: go to the repo page, GitHub usually
-shows a green "Compare & pull request" button — click it, write a sentence
+shows a green "Compare & pull request" button, click it, write a sentence
 about what you did, submit.
 
 **6.** w0wzahh reviews it. If changes are requested, edit, commit, push
-again — the PR updates itself. Once approved it gets merged. Done.
+again, the PR updates itself. Once approved it gets merged. Done.
 
 **Never** force-push (`push -f`) or commit directly to `main`.
 
 ## Code style (keep it consistent)
 
-- Java 17, plain JDBC. No new libraries without asking the group first.
+- Java 17, Spring Boot + Spring Data JPA. No new libraries without asking
+  the group first.
 - 4 spaces, no tabs.
-- SQL lives **only** in `dao/` classes — services and UI never write SQL.
-- Always `PreparedStatement` with `?` placeholders — never glue user input
-  into a query string (that's how SQL injection happens).
-- Always `try (Connection conn = ...)` — try-with-resources, so connections
-  close themselves.
+- Database access lives **only** in `repository/` interfaces, services and
+  controllers never write SQL. Need a custom query? `@Query` JPQL on the
+  repository, never string-built SQL.
+- Write methods in services get `@Transactional`; controllers stay thin.
 - Comments: short and useful. A little personality is fine, clutter is not.
-- New user action? Log it — copy the `logDao.log(...)` pattern you see in
-  the services.
+- New user action? Log it, copy the `audit.log(...)` pattern you see in
+  `AuthService`.
 
 ## Changing the database schema
 
-Talk to the group FIRST — everyone runs the same databases.
+Talk to the group FIRST, everyone runs the same databases.
 
 1. Make a new numbered file: `sql/03_whatever.sql` (never edit a merged
-   script — everyone's DB is already built from the old ones).
+   script, everyone's DB is already built from the old ones).
 2. Update `docs/03-database-schema.md` in the same PR.
 
-## Before you open a PR
+## Before you open a PR (not optional)
 
-- [ ] `mvn -q compile` passes
-- [ ] you actually ran the app and tried your feature
-- [ ] docs updated if you changed behaviour or the schema
-- [ ] no passwords or personal data in your changes
+If `main` breaks, everyone's work stops. Check ALL of these before pushing:
+
+- [ ] `mvn test` finishes green, not just compiles. Dependency mistakes
+      fail here, we just learned that the hard way.
+- [ ] `scripts\setup-db.bat` runs clean against a real MySQL if you touched
+      anything in `sql/`, a missing comma counts as broken.
+- [ ] You actually hit your endpoint in Swagger UI, "it compiles" is not
+      "it works".
+- [ ] You did not invent dependency names. Spring starters live at
+      https://docs.spring.io/spring-boot/appendix/dependency-versions/index.html,
+      if it's not there or not already in our `pom.xml`, ask the group
+      BEFORE adding it.
+- [ ] Docs updated if you changed behaviour or the schema.
+- [ ] No passwords, personal data, or local machine paths in your changes.
+
+Pushed something and the build breaks anyway? Fix it in a NEW commit right
+away or tell the group. Don't leave `main` red for someone else to find.
