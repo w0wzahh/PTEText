@@ -4,13 +4,21 @@ import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.exception.NoFileFoundException;
 import com.ptetext.repository.system.AttachmentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;;
 
 @Service
 public class AttachmentService {
 
     private final AttachmentRepository repo;
+    private static int uploadsCount;
 
     public AttachmentService(AttachmentRepository repo) {
         this.repo = repo;
@@ -46,6 +54,35 @@ public class AttachmentService {
             throw new NoFileFoundException(id+" was not found!");
         }
         return attchEntList;
+    }
+
+    @Transactional("systemEntityManagerFactory")
+    public AttachmentEntity fileUpload(Long messageId, int uploaderId, String fileName, String mimeType,
+                                       Long sizeBytes, String stored_path, MultipartFile mpf) throws IOException {
+
+        String storedPath = fileUpload(mpf);
+        //if (storedPath.isEmpty()) {throw new FileFailedToUpload}
+        return repo.fileUpload(messageId,uploaderId,fileName,mimeType,sizeBytes,stored_path);
+
+    }
+
+    private String fileUpload (MultipartFile mpf) {
+        final String uploadsFolderPathString="C:\\ptetext\\uploads";
+
+
+        String oldName = mpf.getOriginalFilename().trim();
+        String extension = oldName.substring(oldName.lastIndexOf("."));
+        String newName = UUID.randomUUID().toString()+extension;
+        Path uploadFilePath = Paths.get(uploadsFolderPathString+"\\"+newName);
+        try {
+            mpf.transferTo(uploadFilePath);
+            return uploadFilePath.toString();
+        }catch (IOException e) {
+          return "";
+        }
+
+
+
     }
 
 }

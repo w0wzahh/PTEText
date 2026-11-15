@@ -15,13 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class ChatService {
@@ -156,30 +150,11 @@ public class ChatService {
     }
 
     @Transactional("chatTransactionManager")
-    public long sendAttachment(int conversationId, int senderId, String fileName, long sizeBytes) {
-        if (fileName == null || fileName.isBlank()) {
-            throw new IllegalArgumentException("File name is required.");
-        }
-        if (fileName.trim().length() > 255) {
-            throw new IllegalArgumentException("File name too long (max 255 characters).");
-        }
-        if (sizeBytes < 0) {
-            throw new IllegalArgumentException("sizeBytes cannot be negative.");
-        }
+    public long sendAttachment(int conversationId, int senderId, String fileName) {
+
         requireParticipant(conversationId, senderId);
         String body = "[attachment] " + fileName.trim();
         MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body));
-        try {
-            attachments.save(new AttachmentEntity(
-                    saved.getMessageId(), senderId, fileName.trim(),
-                    "application/octet-stream", sizeBytes));
-        } catch (RuntimeException e) {
-            // attachments lives in the system DB - not part of this transaction.
-            // Don't leave an "[attachment] x" message with no attachment behind.
-            saved.softDelete();
-            messages.save(saved);
-            throw e;
-        }
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
         audit.log(senderId, "ATTACHMENT_ADDED",
