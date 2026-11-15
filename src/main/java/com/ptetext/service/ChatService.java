@@ -15,13 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class ChatService {
@@ -153,23 +147,23 @@ public class ChatService {
     }
 
     @Transactional("chatTransactionManager")
-    public long sendAttachment(int conversationId, int senderId, String fileName, long sizeBytes) {
-        if (fileName == null || fileName.isBlank()) {
+    public long sendAttachment(int conversationId, int senderId, String fileName/*, long sizeBytes*/) {
+       /* if (fileName == null || fileName.isBlank()) {
             throw new IllegalArgumentException("File name is required.");
         }
         if (sizeBytes < 0) {
             throw new IllegalArgumentException("sizeBytes cannot be negative.");
-        }
+        }*/
         requireParticipant(conversationId, senderId);
         String body = "[attachment] " + fileName.trim();
         MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body));
-        attachments.save(new AttachmentEntity(
+       /* attachments.save(new AttachmentEntity(
                 saved.getMessageId(), senderId, fileName.trim(),
-                "application/octet-stream", sizeBytes));
+                "application/octet-stream", sizeBytes));*/
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
-        audit.log(senderId, "ATTACHMENT_ADDED",
-                "Attached " + fileName.trim() + " to message " + saved.getMessageId());
+        /*audit.log(senderId, "ATTACHMENT_ADDED",
+                "Attached " + fileName.trim() + " to message " + saved.getMessageId());*/
         return saved.getMessageId();
     }
 
@@ -316,4 +310,6 @@ public class ChatService {
         }
         return names;
     }
+
+
 }
