@@ -43,8 +43,9 @@ Core: registration, login + sessions, direct messages, group chats,
 contacts, audit logging, attachment metadata (issues #9–#14).
 
 Stretch: message editing/deletion, read receipts, real file upload,
-message search, password change, Swing/JavaFX GUI, BCrypt hashing,
-socket server for live delivery (issues #1–#8).
+password change, Swing/JavaFX GUI, BCrypt hashing (issues #1–#8;
+message search and a socket server were scoped out to keep the
+project reviewable).
 
 ## Technology
 

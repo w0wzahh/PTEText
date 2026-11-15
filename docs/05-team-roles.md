@@ -60,11 +60,12 @@ example (`AuthController` → `AuthService` → `UserRepository` → `UserEntity
 - **#1** Edit + delete messages (columns already exist)
 - **#2** Read receipts (`last_read_at` exists, perfect for this)
 - **#3** Real file upload for attachments
-- **#4** Search messages (`searchUsers` in `UserRepository` shows the pattern)
 - **#5** Change password flow
 - **#6** Prettier web client (framework, websockets, whatever)
 - **#7** BCrypt password hashing, small but important
-- **#8** Socket server for live delivery, hardest, pair up
+
+Cut for scope: #4 message search and #8 socket server — REST +
+periodic refresh is enough for the demo.
 
 No issue left unclaimed, if you finish yours early, grab another or help
 review PRs.
