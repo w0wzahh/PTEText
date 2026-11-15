@@ -2,6 +2,7 @@ package com.ptetext.controller;
 
 import com.ptetext.dto.Dtos;
 import com.ptetext.dto.Dtos.ErrorResponse;
+import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.service.AttachmentService;
 import com.ptetext.service.AuthService;
 import com.ptetext.service.ChatService;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Optional;
 import java.util.Set;
 
 
@@ -78,7 +80,8 @@ public class AttachmentController {
                                         @PathVariable("conversationId") int conversationId,
                                         @RequestParam ("file")MultipartFile file,
                                         @RequestParam String sessionId){
-        if (auth.validateSession(sessionId).isEmpty()) {
+        Optional<Integer> userId = auth.validateSession(sessionId);
+        if (userId.isEmpty()) {
             return unauthorized();
         }
         final Set<String> AllowedExtensions = Set.of("txt","png","jpeg","jpg","rar","zip","pdf","gif","docx");
@@ -97,7 +100,7 @@ public class AttachmentController {
         String mimeType = file.getContentType();
         Long messageId= chat.sendAttachment(conversationId,auth.validateSession(sessionId).get(),fileName);
 
-
+        /*AttachmentEntity ae = */attachment.sendAttachment(messageId, userId.get(), fileName,mimeType,fileSize,file);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new Dtos.MessageIdResponse(messageId));
 

@@ -1,6 +1,7 @@
 package com.ptetext.service;
 
 import com.ptetext.entity.system.AttachmentEntity;
+import com.ptetext.exception.FileFailedToUploadException;
 import com.ptetext.exception.NoFileFoundException;
 import com.ptetext.repository.system.AttachmentRepository;
 import org.springframework.stereotype.Service;
@@ -61,12 +62,12 @@ public class AttachmentService {
     }
 
     @Transactional("systemEntityManagerFactory")
-    public AttachmentEntity fileUpload(Long messageId, int uploaderId, String fileName, String mimeType,
-                                       Long sizeBytes, String stored_path, MultipartFile mpf) throws IOException {
+    public AttachmentEntity sendAttachment(Long messageId, int uploaderId, String fileName, String mimeType,
+                                       Long sizeBytes, MultipartFile mpf) {
 
         String storedPath = fileUpload(mpf);
-        //if (storedPath.isEmpty()) {throw new FileFailedToUpload}
-        return repo.fileUpload(messageId,uploaderId,fileName,mimeType,sizeBytes,stored_path);
+        if (storedPath.isEmpty()) {throw new FileFailedToUploadException("File upload failed!");}
+        return repo.fileUpload(messageId,uploaderId,fileName,mimeType,sizeBytes,storedPath);
 
     }
 
@@ -82,7 +83,7 @@ public class AttachmentService {
             mpf.transferTo(uploadFilePath);
             return uploadFilePath.toString();
         }catch (IOException e) {
-          return "";
+            return "";
         }
 
 
