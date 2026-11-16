@@ -27,6 +27,8 @@ import java.util.Set;
 public class ChatService {
 
     private static final int DEFAULT_MESSAGE_LIMIT = 50;
+    private static final int MAX_MESSAGE_LIMIT = 200;
+    private static final int MAX_BODY_LENGTH = 4000;
 
     public record ConversationSummary(int conversationId, String label, boolean group,
                                       int unreadCount, LocalDateTime lastReadAt) {
@@ -100,11 +102,9 @@ public class ChatService {
 
     @Transactional("chatTransactionManager")
     public long sendMessage(int conversationId, int senderId, String body) {
-        if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Message is empty.");
-        }
+        String text = requireNonBlankBody(body);
         requireParticipant(conversationId, senderId);
-        MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body.trim()));
+        MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, text));
         markConversationRead(conversationId, senderId);
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
@@ -176,7 +176,7 @@ public class ChatService {
     @Transactional(value = "chatTransactionManager", readOnly = true)
     public List<ChatMessage> getMessages(int conversationId, int viewerId, int limit) {
         requireParticipant(conversationId, viewerId);
-        int cap = limit < 1 ? DEFAULT_MESSAGE_LIMIT : limit;
+        int cap = limit < 1 ? DEFAULT_MESSAGE_LIMIT : Math.min(limit, MAX_MESSAGE_LIMIT);
         List<MessageEntity> rows = new ArrayList<>(
                 messages.findByConversationIdAndDeletedFalseOrderBySentAtDesc(
                         conversationId, PageRequest.of(0, cap)));
@@ -290,7 +290,12 @@ public class ChatService {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Message body is required.");
         }
-        return body.trim();
+        String text = body.trim();
+        if (text.length() > MAX_BODY_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Message too long (max " + MAX_BODY_LENGTH + " characters).");
+        }
+        return text;
     }
 
     private MessageEntity loadOwnedMessage(int conversationId, long messageId, int userId) {
