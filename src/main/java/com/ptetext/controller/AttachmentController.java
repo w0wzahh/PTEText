@@ -2,17 +2,16 @@ package com.ptetext.controller;
 
 import com.ptetext.dto.Dtos;
 import com.ptetext.dto.Dtos.ErrorResponse;
-import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.service.AttachmentService;
 import com.ptetext.service.AuthService;
 import com.ptetext.service.ChatService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 import java.util.Set;
@@ -77,30 +76,31 @@ public class AttachmentController {
 
     @PostMapping(value= "/fileUpload/{conversationId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> sendAttachment(
-                                        @PathVariable("conversationId") int conversationId,
-                                        @RequestParam ("file")MultipartFile file,
-                                        @RequestParam String sessionId){
-        Optional<Integer> userId = auth.validateSession(sessionId);
+            @PathVariable("conversationId") int conversationId,
+            /*@RequestBody SendAttachmentRequest req,
+            @RequestParam("file") MultipartFile file*/
+            @ModelAttribute @Valid Dtos.SendAttachmentRequest req){
+        Optional<Integer> userId = auth.validateSession(req.sessionId());
         if (userId.isEmpty()) {
             return unauthorized();
         }
         final Set<String> AllowedExtensions = Set.of("txt","png","jpeg","jpg","rar","zip","pdf","gif","docx");
 
-        Long fileSize = file.getSize();
-        String fileName = file.getOriginalFilename();
+        Long fileSize = req.file().getSize();
+        String fileName = req.file().getOriginalFilename();
         if (fileSize < 0) {
             throw  new IllegalArgumentException("File size cannot be less than 0");
         }
         if (fileName == null||fileName.isBlank()) {
             throw  new IllegalArgumentException("File must have a name");
         }
-        if (!AllowedExtensions.contains(file.getOriginalFilename().substring(fileName.lastIndexOf("."+1)).toLowerCase())) {
+        if (!AllowedExtensions.contains(req.file().getOriginalFilename().substring(fileName.lastIndexOf(".")+1).toLowerCase())) {
             throw  new IllegalArgumentException("File must have an extension");
         }
-        String mimeType = file.getContentType();
-        Long messageId= chat.sendAttachment(conversationId,auth.validateSession(sessionId).get(),fileName);
+        String mimeType = req.file().getContentType();
+        Long messageId= chat.sendAttachment(conversationId,auth.validateSession(req.sessionId()).get(),fileName);
 
-        /*AttachmentEntity ae = */attachment.sendAttachment(messageId, userId.get(), fileName,mimeType,fileSize,file);
+        /*AttachmentEntity ae = */attachment.sendAttachment(messageId, userId.get(), fileName,mimeType,fileSize,req.file());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new Dtos.MessageIdResponse(messageId));
 

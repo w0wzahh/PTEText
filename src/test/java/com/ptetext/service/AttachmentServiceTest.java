@@ -20,11 +20,12 @@ class AttachmentServiceTest {
 
     private AttachmentRepository repo;
     private AttachmentService service;
+    private AuditLogger audit;
 
     @BeforeEach
     void setUp() {
         repo = mock(AttachmentRepository.class);
-        service = new AttachmentService(repo);
+        service = new AttachmentService(repo, audit);
     }
 
     private AttachmentEntity attachment(String name) {
