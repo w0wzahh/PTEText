@@ -11,8 +11,5 @@ import java.util.List;
 @Repository
 public interface ContactRepository extends JpaRepository<ContactEntity, ContactId> {
 
-    // TODO(section 3): query methods go here, e.g.
-    //   List<ContactEntity> findByOwnerId(Integer ownerId)
-    //   join with UserEntity for names via @Query
     List<ContactEntity> findByOwnerId(Integer ownerId);
 }

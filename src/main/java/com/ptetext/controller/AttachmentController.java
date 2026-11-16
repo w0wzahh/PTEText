@@ -1,7 +1,6 @@
 package com.ptetext.controller;
 
 import com.ptetext.dto.Dtos.ErrorResponse;
-import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.service.AttachmentService;
 import com.ptetext.service.AuthService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,9 +12,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.Optional;
 
 
 @RestController
