@@ -3,6 +3,7 @@ package com.ptetext.repository.users;
 import com.ptetext.entity.users.SessionEntity;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +21,11 @@ public interface SessionRepository extends JpaRepository<SessionEntity, String> 
     @Query("SELECT COUNT(s) FROM SessionEntity s "
             + "WHERE s.userId = :userId AND s.valid = true AND s.expiresAt > CURRENT_TIMESTAMP")
     int countActiveSessions(@Param("userId") int userId);
+
+    @Modifying
+    @Query("UPDATE SessionEntity s SET s.valid = false "
+            + "WHERE s.userId = :userId AND s.valid = true")
+    int invalidateAllForUserId(@Param("userId") int userId);
 
     @Procedure("sp_open_session")
     void openSession(Integer p_user_id, String p_token, Integer p_hours);

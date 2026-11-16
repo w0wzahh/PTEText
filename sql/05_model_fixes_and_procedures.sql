@@ -9,10 +9,10 @@
 -- ============================================================================
 
 ALTER TABLE ptetext_users.contacts
-    ADD COLUMN is_favorite TINYINT(1) NOT NULL DEFAULT 0 AFTER nickname;
+    ADD COLUMN IF NOT EXISTS is_favorite TINYINT(1) NOT NULL DEFAULT 0 AFTER nickname;
 
 ALTER TABLE ptetext_chat.conversation_participants
-    ADD COLUMN last_read_at TIMESTAMP NULL DEFAULT NULL AFTER joined_at;
+    ADD COLUMN IF NOT EXISTS last_read_at TIMESTAMP NULL DEFAULT NULL AFTER joined_at;
 
 -- ---------------------------------------------------------------------------
 -- Stored procedure 1: register a user, hand back the new id

@@ -94,6 +94,9 @@ public class ChatService {
             }
         }
         String trimmed = title.trim();
+        if (trimmed.length() > 100) {
+            throw new IllegalArgumentException("Group title must be at most 100 characters.");
+        }
         int conversationId = createConversation(trimmed, true, creatorId, new ArrayList<>(members));
         audit.log(creatorId, "GROUP_CREATED",
                 "Created group '" + trimmed + "' (conversation " + conversationId + ")");
@@ -156,6 +159,9 @@ public class ChatService {
     public long sendAttachment(int conversationId, int senderId, String fileName, long sizeBytes) {
         if (fileName == null || fileName.isBlank()) {
             throw new IllegalArgumentException("File name is required.");
+        }
+        if (fileName.trim().length() > 255) {
+            throw new IllegalArgumentException("File name too long (max 255 characters).");
         }
         if (sizeBytes < 0) {
             throw new IllegalArgumentException("sizeBytes cannot be negative.");
