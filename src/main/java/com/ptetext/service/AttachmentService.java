@@ -6,7 +6,6 @@ import com.ptetext.repository.system.AttachmentRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class AttachmentService {
@@ -26,13 +25,9 @@ public class AttachmentService {
        return attchEntList;
    }
 
-    public Optional<AttachmentEntity> findFileByAttachmentId(Long id) {
-        Optional<AttachmentEntity> attachment = repo.findFileByAttachmentId(id);
-
-        if (attachment.isEmpty()) {
-            throw new NoFileFoundException(id+" was not found!");
-        }
-        return attachment;
+    public AttachmentEntity findFileByAttachmentId(Long id) {
+        return repo.findFileByAttachmentId(id)
+                .orElseThrow(() -> new NoFileFoundException(id+" was not found!"));
     }
 
     public List<AttachmentEntity> findFileByMessageId(Long id) {

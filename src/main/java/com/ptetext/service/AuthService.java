@@ -61,7 +61,8 @@ public class AuthService {
         String salt = found.map(UserEntity::getSalt).orElse("");
         if (found.isEmpty() || !PasswordHasher.verify(password, salt, hash)) {
             throttle.onFailure(name);
-            audit.log(null, "LOGIN_FAILED", "Failed login for @" + name);
+            audit.log(found.map(UserEntity::getUserId).orElse(null),
+                    "LOGIN_FAILED", "Failed login for @" + name);
             return Optional.empty();
         }
         throttle.onSuccess(name);
@@ -85,7 +86,7 @@ public class AuthService {
     @Transactional
     public void changePassword(String sessionId, String currentPassword, String newPassword) {
         Integer userId = validateSession(sessionId)
-                .orElseThrow(() -> new IllegalStateException("Valid session required."));
+                .orElseThrow(() -> new IllegalArgumentException("Valid session required."));
         UserEntity user = users.findById(userId).orElseThrow();
         if (!PasswordHasher.verify(currentPassword, user.getSalt(), user.getPasswordHash())) {
             audit.log(userId, "PASSWORD_CHANGE_FAILED", "Wrong current password");

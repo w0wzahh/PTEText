@@ -169,9 +169,17 @@ public class ChatService {
         requireParticipant(conversationId, senderId);
         String body = "[attachment] " + fileName.trim();
         MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body));
-        attachments.save(new AttachmentEntity(
-                saved.getMessageId(), senderId, fileName.trim(),
-                "application/octet-stream", sizeBytes));
+        try {
+            attachments.save(new AttachmentEntity(
+                    saved.getMessageId(), senderId, fileName.trim(),
+                    "application/octet-stream", sizeBytes));
+        } catch (RuntimeException e) {
+            // attachments lives in the system DB - not part of this transaction.
+            // Don't leave an "[attachment] x" message with no attachment behind.
+            saved.softDelete();
+            messages.save(saved);
+            throw e;
+        }
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
         audit.log(senderId, "ATTACHMENT_ADDED",
@@ -196,18 +204,14 @@ public class ChatService {
         }
         Map<Integer, String> names = displayNamesFor(senderIds);
 
-        Map<Integer, LocalDateTime> readMarks = new HashMap<>();
-        for (ParticipantEntity p : participants.findByConversationId(conversationId)) {
-            if (p.getUserId() != viewerId && p.getLastReadAt() != null) {
-                readMarks.put(p.getUserId(), p.getLastReadAt());
-            }
-        }
+        List<ParticipantEntity> others = participants.findByConversationId(conversationId)
+                .stream().filter(p -> p.getUserId() != viewerId).toList();
 
         List<ChatMessage> result = new ArrayList<>(rows.size());
         for (MessageEntity row : rows) {
             String name = names.getOrDefault(row.getSenderId(), "User #" + row.getSenderId());
-            boolean read = readMarks.values().stream()
-                    .anyMatch(t -> !t.isBefore(row.getSentAt()));
+            boolean read = !others.isEmpty() && others.stream().allMatch(
+                    p -> p.getLastReadAt() != null && !p.getLastReadAt().isBefore(row.getSentAt()));
             result.add(new ChatMessage(row.getMessageId(), name, row.getBody(),
                     row.getSentAt(), row.getEditedAt(), read));
         }
