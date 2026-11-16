@@ -92,12 +92,11 @@ CREATE PROCEDURE sp_file_upload(
     IN p_mime_type VARCHAR(100),
     IN p_size_bytes BIGINT(20),
     IN p_stored_path VARCHAR(500),
-    OUT p_attachment_id BIGINT(20),
+
 )
 BEGIN
     INSERT INTO attachments (message_id, uploader_id, file_name, mime_type, size_bytes, stored_path, uploaded_at)
     VALUES (p_message_id, p_uploader_id, p_file_name, p_mime_type,
             p_size_bytes,p_stored_path, CURRENT_TIMESTAMP() );
-    SET p_attachment_id = LAST_INSERT_ID();
 END //
 DELIMITER ;

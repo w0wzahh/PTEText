@@ -19,10 +19,10 @@ import java.util.UUID;;
 public class AttachmentService {
 
     private final AttachmentRepository repo;
-    private static int uploadsCount;
+    private final AuditLogger audit;
 
-    public AttachmentService(AttachmentRepository repo) {
-        this.repo = repo;
+    public AttachmentService(AttachmentRepository repo, AuditLogger audit) {
+        this.repo = repo; this.audit = new AuditLogger();
     }
 
     public List<AttachmentEntity> findFileByName(String name) {
@@ -61,13 +61,14 @@ public class AttachmentService {
         return attchEntList;
     }
 
-    @Transactional("systemEntityManagerFactory")
-    public AttachmentEntity sendAttachment(Long messageId, int uploaderId, String fileName, String mimeType,
+    @Transactional("systemTransactionManager")
+    public void sendAttachment(Long messageId, int uploaderId, String fileName, String mimeType,
                                        Long sizeBytes, MultipartFile mpf) {
 
         String storedPath = fileUpload(mpf);
         if (storedPath.isEmpty()) {throw new FileFailedToUploadException("File upload failed!");}
-        return repo.fileUpload(messageId,uploaderId,fileName,mimeType,sizeBytes,storedPath);
+        //audit.log(uploaderId,"ATTACHMENT_ADDED",fileName+"successfully uploaded with "+messageId);
+        repo.fileUpload(messageId,uploaderId,fileName,mimeType,sizeBytes,storedPath);
 
     }
 
@@ -77,7 +78,7 @@ public class AttachmentService {
 
         String oldName = mpf.getOriginalFilename().trim();
         String extension = oldName.substring(oldName.lastIndexOf("."));
-        String newName = UUID.randomUUID().toString()+extension;
+        String newName = UUID.randomUUID()+extension;
         Path uploadFilePath = Paths.get(uploadsFolderPathString+"\\"+newName);
         try {
             mpf.transferTo(uploadFilePath);
