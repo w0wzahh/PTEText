@@ -4,25 +4,31 @@ import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.exception.FileFailedToUploadException;
 import com.ptetext.exception.NoFileFoundException;
 import com.ptetext.repository.system.AttachmentRepository;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;;
+import java.util.UUID;
 
 @Service
 public class AttachmentService {
 
     private final AttachmentRepository repo;
     private final AuditLogger audit;
+    private final String uploadDir;
 
-    public AttachmentService(AttachmentRepository repo, AuditLogger audit) {
-        this.repo = repo; this.audit = new AuditLogger();
+    public AttachmentService(AttachmentRepository repo, AuditLogger audit,@Value("${ptetext.upload-dir}") String uploadDir) {
+        this.repo = repo;
+        this.uploadDir = uploadDir;
+        this.audit = new AuditLogger();
     }
 
     public List<AttachmentEntity> findFileByName(String name) {
@@ -69,22 +75,22 @@ public class AttachmentService {
     }
 
     private String fileUpload (MultipartFile mpf) {
-        final String uploadsFolderPathString="C:\\ptetext\\uploads";
-
-
         String oldName = mpf.getOriginalFilename().trim();
         String extension = oldName.substring(oldName.lastIndexOf("."));
         String newName = UUID.randomUUID()+extension;
-        Path uploadFilePath = Paths.get(uploadsFolderPathString+"\\"+newName);
+        Path uploadFilePath = Paths.get(uploadDir).resolve(newName);
         try {
             mpf.transferTo(uploadFilePath);
-            return uploadFilePath.toString();
+            return newName;
         }catch (IOException e) {
             return "";
         }
+    }
 
-
-
+    @PostConstruct
+    public void CreateUploadsFolder()throws IOException {
+        Path uploadFolder = Paths.get(uploadDir);
+        Files.createDirectories(uploadFolder);
     }
 
 }

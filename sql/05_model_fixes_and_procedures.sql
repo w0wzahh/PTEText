@@ -91,7 +91,7 @@ CREATE PROCEDURE sp_file_upload(
     IN p_file_name VARCHAR(255),
     IN p_mime_type VARCHAR(100),
     IN p_size_bytes BIGINT(20),
-    IN p_stored_path VARCHAR(500),
+    IN p_stored_path VARCHAR(500)
 
 )
 BEGIN
