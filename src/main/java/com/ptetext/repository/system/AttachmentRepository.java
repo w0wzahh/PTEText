@@ -4,6 +4,7 @@ import com.ptetext.entity.system.AttachmentEntity;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -25,6 +26,9 @@ public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Lo
     @Query(value = "SELECT * FROM attachments WHERE uploader_id = :uploaderId", nativeQuery = true)
     List<AttachmentEntity> findFileByUploaderId(@Param("uploaderId") int id);
 
+    @Procedure(procedureName = "sp_file_upload")
+    void fileUpload(Long p_message_id, int p_uploader_id, String p_file_name,
+                          String p_mime_type, Long p_size_bytes, String p_stored_path);
 
 
 }

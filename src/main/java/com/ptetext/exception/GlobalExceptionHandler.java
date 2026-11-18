@@ -71,4 +71,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("Internal server error"));
     }
+
+    @ExceptionHandler(FileFailedToUploadException.class)
+    public ResponseEntity<ErrorResponse> fileFailedToUpload(FileFailedToUploadException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse("File upload failed!"));
+    }
 }

@@ -1,5 +1,7 @@
 package com.ptetext.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -65,5 +67,7 @@ public final class Dtos {
 
     public record ChatMessageDto(long messageId, String senderName, String body,
                                  LocalDateTime sentAt, LocalDateTime editedAt, boolean read) {
+    }
+    public record SendAttachmentRequest(String sessionId, MultipartFile file) {
     }
 }
