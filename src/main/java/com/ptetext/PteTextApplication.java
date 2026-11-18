@@ -8,5 +8,6 @@ public class PteTextApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(PteTextApplication.class, args);
+
     }
 }

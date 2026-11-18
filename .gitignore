@@ -21,3 +21,6 @@ nbactions.xml
 # OS junk nobody asked for
 .DS_Store
 Thumbs.db
+
+# SQLTools scratchpads
+*.session.sql

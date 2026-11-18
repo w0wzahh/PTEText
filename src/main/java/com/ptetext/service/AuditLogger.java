@@ -15,6 +15,9 @@ public class AuditLogger {
 
     public void log(Integer userId, String action, String details) {
         try {
+            if (details != null && details.length() > 255) {
+                details = details.substring(0, 252) + "...";
+            }
             StoredProcedureQuery q = em.createStoredProcedureQuery("ptetext_system.sp_log_action");
             q.registerStoredProcedureParameter("p_user_id", Integer.class, ParameterMode.IN);
             q.registerStoredProcedureParameter("p_action", String.class, ParameterMode.IN);

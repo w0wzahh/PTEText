@@ -3,11 +3,9 @@ package com.ptetext.service;
 import com.ptetext.entity.chat.ConversationEntity;
 import com.ptetext.entity.chat.MessageEntity;
 import com.ptetext.entity.chat.ParticipantEntity;
-import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.repository.chat.ConversationRepository;
 import com.ptetext.repository.chat.MessageRepository;
 import com.ptetext.repository.chat.ParticipantRepository;
-import com.ptetext.repository.system.AttachmentRepository;
 import com.ptetext.repository.users.UserRepository;
 
 import org.springframework.data.domain.PageRequest;
@@ -15,18 +13,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class ChatService {
 
     private static final int DEFAULT_MESSAGE_LIMIT = 50;
+    private static final int MAX_MESSAGE_LIMIT = 200;
+    private static final int MAX_BODY_LENGTH = 4000;
 
     public record ConversationSummary(int conversationId, String label, boolean group,
                                       int unreadCount, LocalDateTime lastReadAt) {
@@ -40,17 +34,14 @@ public class ChatService {
     private final ParticipantRepository participants;
     private final MessageRepository messages;
     private final UserRepository users;
-    private final AttachmentRepository attachments;
     private final AuditLogger audit;
 
     public ChatService(ConversationRepository conversations, ParticipantRepository participants,
-                       MessageRepository messages, UserRepository users,
-                       AttachmentRepository attachments, AuditLogger audit) {
+                       MessageRepository messages, UserRepository users, AuditLogger audit) {
         this.conversations = conversations;
         this.participants = participants;
         this.messages = messages;
         this.users = users;
-        this.attachments = attachments;
         this.audit = audit;
     }
 
@@ -92,6 +83,9 @@ public class ChatService {
             }
         }
         String trimmed = title.trim();
+        if (trimmed.length() > 100) {
+            throw new IllegalArgumentException("Group title must be at most 100 characters.");
+        }
         int conversationId = createConversation(trimmed, true, creatorId, new ArrayList<>(members));
         audit.log(creatorId, "GROUP_CREATED",
                 "Created group '" + trimmed + "' (conversation " + conversationId + ")");
@@ -100,11 +94,9 @@ public class ChatService {
 
     @Transactional("chatTransactionManager")
     public long sendMessage(int conversationId, int senderId, String body) {
-        if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Message is empty.");
-        }
+        String text = requireNonBlankBody(body);
         requireParticipant(conversationId, senderId);
-        MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body.trim()));
+        MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, text));
         markConversationRead(conversationId, senderId);
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
@@ -153,19 +145,16 @@ public class ChatService {
     }
 
     @Transactional("chatTransactionManager")
-    public long sendAttachment(int conversationId, int senderId, String fileName, long sizeBytes) {
+    public long sendAttachment(int conversationId, int senderId, String fileName) {
         if (fileName == null || fileName.isBlank()) {
             throw new IllegalArgumentException("File name is required.");
         }
-        if (sizeBytes < 0) {
-            throw new IllegalArgumentException("sizeBytes cannot be negative.");
+        if (fileName.trim().length() > 255) {
+            throw new IllegalArgumentException("File name too long (max 255 characters).");
         }
         requireParticipant(conversationId, senderId);
         String body = "[attachment] " + fileName.trim();
         MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body));
-        attachments.save(new AttachmentEntity(
-                saved.getMessageId(), senderId, fileName.trim(),
-                "application/octet-stream", sizeBytes));
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
         audit.log(senderId, "ATTACHMENT_ADDED",
@@ -176,7 +165,7 @@ public class ChatService {
     @Transactional(value = "chatTransactionManager", readOnly = true)
     public List<ChatMessage> getMessages(int conversationId, int viewerId, int limit) {
         requireParticipant(conversationId, viewerId);
-        int cap = limit < 1 ? DEFAULT_MESSAGE_LIMIT : limit;
+        int cap = limit < 1 ? DEFAULT_MESSAGE_LIMIT : Math.min(limit, MAX_MESSAGE_LIMIT);
         List<MessageEntity> rows = new ArrayList<>(
                 messages.findByConversationIdAndDeletedFalseOrderBySentAtDesc(
                         conversationId, PageRequest.of(0, cap)));
@@ -190,18 +179,14 @@ public class ChatService {
         }
         Map<Integer, String> names = displayNamesFor(senderIds);
 
-        Map<Integer, LocalDateTime> readMarks = new HashMap<>();
-        for (ParticipantEntity p : participants.findByConversationId(conversationId)) {
-            if (p.getUserId() != viewerId && p.getLastReadAt() != null) {
-                readMarks.put(p.getUserId(), p.getLastReadAt());
-            }
-        }
+        List<ParticipantEntity> others = participants.findByConversationId(conversationId)
+                .stream().filter(p -> p.getUserId() != viewerId).toList();
 
         List<ChatMessage> result = new ArrayList<>(rows.size());
         for (MessageEntity row : rows) {
             String name = names.getOrDefault(row.getSenderId(), "User #" + row.getSenderId());
-            boolean read = readMarks.values().stream()
-                    .anyMatch(t -> !t.isBefore(row.getSentAt()));
+            boolean read = !others.isEmpty() && others.stream().allMatch(
+                    p -> p.getLastReadAt() != null && !p.getLastReadAt().isBefore(row.getSentAt()));
             result.add(new ChatMessage(row.getMessageId(), name, row.getBody(),
                     row.getSentAt(), row.getEditedAt(), read));
         }
@@ -290,7 +275,12 @@ public class ChatService {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Message body is required.");
         }
-        return body.trim();
+        String text = body.trim();
+        if (text.length() > MAX_BODY_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Message too long (max " + MAX_BODY_LENGTH + " characters).");
+        }
+        return text;
     }
 
     private MessageEntity loadOwnedMessage(int conversationId, long messageId, int userId) {
