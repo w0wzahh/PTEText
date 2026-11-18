@@ -51,10 +51,12 @@ tables inside.
 Double-click `scripts\run.bat`, or in a terminal inside the project folder:
 
 ```
-mvn compile exec:java
+mvn spring-boot:run
 ```
 
-Or open the project in IntelliJ/Eclipse and run the `Main` class.
+Or run it from your IDE - IntelliJ/Eclipse: run the `PteTextApplication`
+main class. NetBeans: the Run button (F6) works out of the box, the
+project ships an `nbactions.xml` that maps it to `spring-boot:run`.
 
 When it starts it checks all three databases and prints:
 
