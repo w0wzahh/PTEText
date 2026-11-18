@@ -1,5 +1,6 @@
 package com.ptetext.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -14,7 +15,8 @@ import java.util.Scanner;
 public class ConsoleClient {
     
     static private final String BASE= "http://localhost:8080/";
-    
+    static private final HttpClient client = HttpClient.newHttpClient();
+    static private final ObjectMapper mapper = new ObjectMapper();
     
     static private final Scanner in = new Scanner(System.in);
     
@@ -23,9 +25,6 @@ public class ConsoleClient {
 
     public static void main(String[] args) throws Exception {
         System.out.println("PTEText console client");
-        
-        HttpClient client = HttpClient.newHttpClient();
-        ObjectMapper mapper = new ObjectMapper();
         
         String body = mapper.writeValueAsString(Map.of("username", "alice", "password", "password123"));
         HttpRequest request = HttpRequest.newBuilder()
@@ -36,7 +35,19 @@ public class ConsoleClient {
         
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         
-        System.out.println(response.statusCode());
-        System.out.println(response.body());
+        
+        //login success check
+        if(response.statusCode() != 200){
+            System.out.println("Login failed. "+ response.body());
+            return;
+        }
+        
+        JsonNode root = mapper.readTree(response.body());
+        sessionId = root.get("sessionId").asText();
+        myName = root.path("user").path("displayName").asText();
+        myId = root.path("user").path("userId").asInt();
+        
+        System.out.println("Logged in as "+ myName);
+        
     }
 }
