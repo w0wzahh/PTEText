@@ -6,6 +6,7 @@ import com.ptetext.repository.system.AttachmentRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,11 +22,13 @@ class AttachmentServiceTest {
     private AttachmentRepository repo;
     private AttachmentService service;
     private AuditLogger audit;
+    @Value("${ptetext.upload-dir}")
+    private String uploadDir;
 
     @BeforeEach
     void setUp() {
         repo = mock(AttachmentRepository.class);
-        service = new AttachmentService(repo, audit);
+        service = new AttachmentService(repo, audit, uploadDir);
     }
 
     private AttachmentEntity attachment(String name) {
