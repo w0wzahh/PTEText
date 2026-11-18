@@ -15,13 +15,13 @@ import java.util.Optional;
 public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Long> {
 
     @Query(value = "SELECT * FROM attachments WHERE file_name = :fileName", nativeQuery = true)
-    List<AttachmentEntity> findFileByName(@Param("fileName") String name);
+    Optional<AttachmentEntity> findFileByName(@Param("fileName") String name);
 
     @Query(value = "SELECT * FROM attachments WHERE attachment_id = :attachmentId", nativeQuery = true)
     Optional<AttachmentEntity> findFileByAttachmentId(@Param("attachmentId") Long id);
 
     @Query(value = "SELECT * FROM attachments WHERE message_id = :messageId", nativeQuery = true)
-    List<AttachmentEntity> findFileByMessageId(@Param("messageId") Long id);
+    Optional<AttachmentEntity> findFileByMessageId(@Param("messageId") Long id);
 
     @Query(value = "SELECT * FROM attachments WHERE uploader_id = :uploaderId", nativeQuery = true)
     List<AttachmentEntity> findFileByUploaderId(@Param("uploaderId") int id);
@@ -29,6 +29,8 @@ public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Lo
     @Procedure(procedureName = "sp_file_upload")
     void fileUpload(Long p_message_id, int p_uploader_id, String p_file_name,
                           String p_mime_type, Long p_size_bytes, String p_stored_path);
+
+
 
 
 }
