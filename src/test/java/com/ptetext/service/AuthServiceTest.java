@@ -104,7 +104,7 @@ class AuthServiceTest {
     @Test
     void changePasswordRequiresValidSession() {
         when(sessions.findValidUserId("dead-token")).thenReturn(Optional.empty());
-        assertThrows(IllegalStateException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> auth.changePassword("dead-token", "old", "newpass123"));
     }
 

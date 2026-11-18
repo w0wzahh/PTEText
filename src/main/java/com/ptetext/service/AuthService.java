@@ -17,6 +17,7 @@ import java.util.UUID;
 public class AuthService {
 
     private static final int SESSION_HOURS = 12;
+    private static final String DUMMY_HASH = PasswordHasher.hashPassword("dummy");
 
     private final UserRepository users;
     private final SessionRepository sessions;
@@ -40,6 +41,9 @@ public class AuthService {
         }
         Integer id = users.registerUser(username,
                 PasswordHasher.hashPassword(password), "", name);
+        if (id == null) {
+            throw new IllegalStateException("Registration failed: no user id returned.");
+        }
         audit.log(id, "REGISTER", "Account created for @" + username);
         return users.findById(id).orElseThrow();
     }
@@ -53,10 +57,12 @@ public class AuthService {
                     "Too many failed attempts - try again in " + throttle.remainingSeconds(name) + "s");
         }
         Optional<UserEntity> found = users.findByUsername(name);
-        if (found.isEmpty() || !PasswordHasher.verify(
-                password, found.get().getSalt(), found.get().getPasswordHash())) {
+        String hash = found.map(UserEntity::getPasswordHash).orElse(DUMMY_HASH);
+        String salt = found.map(UserEntity::getSalt).orElse("");
+        if (found.isEmpty() || !PasswordHasher.verify(password, salt, hash)) {
             throttle.onFailure(name);
-            audit.log(null, "LOGIN_FAILED", "Failed login for @" + name);
+            audit.log(found.map(UserEntity::getUserId).orElse(null),
+                    "LOGIN_FAILED", "Failed login for @" + name);
             return Optional.empty();
         }
         throttle.onSuccess(name);
@@ -80,7 +86,7 @@ public class AuthService {
     @Transactional
     public void changePassword(String sessionId, String currentPassword, String newPassword) {
         Integer userId = validateSession(sessionId)
-                .orElseThrow(() -> new IllegalStateException("Valid session required."));
+                .orElseThrow(() -> new IllegalArgumentException("Valid session required."));
         UserEntity user = users.findById(userId).orElseThrow();
         if (!PasswordHasher.verify(currentPassword, user.getSalt(), user.getPasswordHash())) {
             audit.log(userId, "PASSWORD_CHANGE_FAILED", "Wrong current password");
@@ -89,6 +95,7 @@ public class AuthService {
         requireValidPassword(newPassword);
         user.setCredentials(PasswordHasher.hashPassword(newPassword), "");
         users.save(user);
+        sessions.invalidateAllForUserId(userId);
         audit.log(userId, "PASSWORD_CHANGED", "Password updated");
     }
 

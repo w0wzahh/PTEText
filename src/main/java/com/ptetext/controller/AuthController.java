@@ -71,7 +71,11 @@ public class AuthController {
 
     @PostMapping("/change-password")
     @Operation(summary = "Change password (needs session + current password)")
-    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest req) {
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest req) {
+        if (auth.validateSession(req.sessionId()).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse("Session invalid or expired"));
+        }
         auth.changePassword(req.sessionId(), req.currentPassword(), req.newPassword());
         return ResponseEntity.noContent().build();
     }

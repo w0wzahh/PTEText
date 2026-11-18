@@ -41,6 +41,7 @@ final class LoginThrottle {
 
     synchronized void onFailure(String key) {
         long now = System.currentTimeMillis();
+        sweep(now);
         Attempt attempt = attempts.computeIfAbsent(normalize(key), k -> new Attempt());
         if (now - attempt.windowStart > windowMs) {
             attempt.failures = 0;
@@ -55,6 +56,13 @@ final class LoginThrottle {
 
     synchronized void onSuccess(String key) {
         attempts.remove(normalize(key));
+    }
+
+    private void sweep(long now) {
+        attempts.entrySet().removeIf(e -> {
+            Attempt a = e.getValue();
+            return a.lockedUntil <= now && now - a.windowStart > windowMs;
+        });
     }
 
     private String normalize(String key) {

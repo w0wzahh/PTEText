@@ -50,7 +50,7 @@ class AttachmentServiceTest {
     void findByIdReturnsEntity() {
         AttachmentEntity a = attachment("photo.png");
         when(repo.findFileByAttachmentId(3L)).thenReturn(Optional.of(a));
-        assertEquals(Optional.of(a), service.findFileByAttachmentId(3L));
+        assertEquals(a, service.findFileByAttachmentId(3L));
     }
 
     @Test

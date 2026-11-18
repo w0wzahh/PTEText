@@ -33,6 +33,9 @@ public final class PasswordHasher {
     }
 
     public static boolean verify(String password, String salt, String expectedHash) {
+        if (password == null || expectedHash == null) {
+            return false;
+        }
         if (expectedHash.startsWith(BCRYPT_PREFIX)) {
             return BCRYPT.matches(password, expectedHash.substring(BCRYPT_PREFIX.length()));
         }
