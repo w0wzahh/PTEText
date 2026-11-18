@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -28,7 +27,7 @@ public class AttachmentService {
     public AttachmentService(AttachmentRepository repo, AuditLogger audit,@Value("${ptetext.upload-dir}") String uploadDir) {
         this.repo = repo;
         this.uploadDir = uploadDir;
-        this.audit = new AuditLogger();
+        this.audit = audit;
     }
 
     public List<AttachmentEntity> findFileByName(String name) {
@@ -69,14 +68,27 @@ public class AttachmentService {
 
         String storedPath = fileUpload(mpf);
         if (storedPath.isEmpty()) {throw new FileFailedToUploadException("File upload failed!");}
-        //audit.log(uploaderId,"ATTACHMENT_ADDED",fileName+"successfully uploaded with "+messageId);
-        repo.fileUpload(messageId,uploaderId,fileName,mimeType,sizeBytes,storedPath);
+        try {
+            repo.fileUpload(messageId,uploaderId,fileName,mimeType,sizeBytes,storedPath);
+        } catch (RuntimeException e) {
+            try {
+                Files.deleteIfExists(Paths.get(uploadDir).resolve(storedPath));
+            } catch (IOException ignored) {
+            }
+            throw e;
+        }
+        audit.log(uploaderId, "ATTACHMENT_ADDED",
+                "Uploaded " + fileName + " (" + sizeBytes + " bytes) to message " + messageId);
 
     }
 
     private String fileUpload (MultipartFile mpf) {
-        String oldName = mpf.getOriginalFilename().trim();
-        String extension = oldName.substring(oldName.lastIndexOf("."));
+        String oldName = mpf.getOriginalFilename();
+        if (oldName == null || oldName.isBlank()) {
+            oldName = "file";
+        }
+        int dot = oldName.lastIndexOf(".");
+        String extension = dot >= 0 ? oldName.substring(dot) : "";
         String newName = UUID.randomUUID()+extension;
         Path uploadFilePath = Paths.get(uploadDir).resolve(newName);
         try {

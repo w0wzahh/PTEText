@@ -1,34 +1,42 @@
 package com.ptetext.service;
 
 import com.ptetext.entity.system.AttachmentEntity;
+import com.ptetext.exception.FileFailedToUploadException;
 import com.ptetext.exception.NoFileFoundException;
 import com.ptetext.repository.system.AttachmentRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AttachmentServiceTest {
 
     private AttachmentRepository repo;
-    private AttachmentService service;
     private AuditLogger audit;
-    @Value("${ptetext.upload-dir}")
-    private String uploadDir;
+    private AttachmentService service;
 
     @BeforeEach
     void setUp() {
         repo = mock(AttachmentRepository.class);
-        service = new AttachmentService(repo, audit, uploadDir);
+        audit = mock(AuditLogger.class);
+        service = new AttachmentService(repo, audit, "target/test-uploads");
     }
 
     private AttachmentEntity attachment(String name) {
@@ -92,5 +100,28 @@ class AttachmentServiceTest {
         when(repo.findFileByUploaderId(123)).thenReturn(List.of());
         assertThrows(NoFileFoundException.class,
                 () -> service.findFileByUploaderId(123));
+    }
+
+    @Test
+    void sendAttachmentStoresFileAndAudits() throws IOException {
+        MultipartFile mpf = mock(MultipartFile.class);
+        when(mpf.getOriginalFilename()).thenReturn("notes.txt");
+
+        service.sendAttachment(5L, 1, "notes.txt", "text/plain", 100L, mpf);
+
+        verify(mpf).transferTo(any(Path.class));
+        verify(repo).fileUpload(any(Long.class), anyInt(),
+                eq("notes.txt"), eq("text/plain"), eq(100L), anyString());
+        verify(audit).log(eq(1), eq("ATTACHMENT_ADDED"), anyString());
+    }
+
+    @Test
+    void sendAttachmentThrowsWhenWriteFails() throws IOException {
+        MultipartFile mpf = mock(MultipartFile.class);
+        when(mpf.getOriginalFilename()).thenReturn("x.png");
+        doThrow(new IOException("disk full")).when(mpf).transferTo(any(Path.class));
+
+        assertThrows(FileFailedToUploadException.class,
+                () -> service.sendAttachment(5L, 1, "x.png", "image/png", 5L, mpf));
     }
 }

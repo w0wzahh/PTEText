@@ -77,30 +77,33 @@ public class AttachmentController {
     @PostMapping(value= "/fileUpload/{conversationId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> sendAttachment(
             @PathVariable("conversationId") int conversationId,
-            /*@RequestBody SendAttachmentRequest req,
-            @RequestParam("file") MultipartFile file*/
             @ModelAttribute @Valid Dtos.SendAttachmentRequest req){
         Optional<Integer> userId = auth.validateSession(req.sessionId());
         if (userId.isEmpty()) {
             return unauthorized();
         }
-        final Set<String> AllowedExtensions = Set.of("txt","png","jpeg","jpg","rar","zip","pdf","gif","docx");
+        if (req.file() == null || req.file().isEmpty()) {
+            throw new IllegalArgumentException("Choose a file to upload");
+        }
+        final Set<String> allowedExtensions = Set.of("txt","png","jpeg","jpg","rar","zip","pdf","gif","docx");
 
         Long fileSize = req.file().getSize();
         String fileName = req.file().getOriginalFilename();
-        if (fileSize < 0) {
-            throw  new IllegalArgumentException("File size cannot be less than 0");
-        }
         if (fileName == null||fileName.isBlank()) {
             throw  new IllegalArgumentException("File must have a name");
         }
-        if (!AllowedExtensions.contains(req.file().getOriginalFilename().substring(fileName.lastIndexOf(".")+1).toLowerCase())) {
-            throw  new IllegalArgumentException("File must have an extension");
+        if (!allowedExtensions.contains(fileName.substring(fileName.lastIndexOf(".")+1).toLowerCase())) {
+            throw  new IllegalArgumentException("File type not allowed");
         }
         String mimeType = req.file().getContentType();
-        Long messageId= chat.sendAttachment(conversationId,auth.validateSession(req.sessionId()).get(),fileName);
+        Long messageId = chat.sendAttachment(conversationId, userId.get(), fileName);
 
-        /*AttachmentEntity ae = */attachment.sendAttachment(messageId, userId.get(), fileName,mimeType,fileSize,req.file());
+        try {
+            attachment.sendAttachment(messageId, userId.get(), fileName, mimeType, fileSize, req.file());
+        } catch (RuntimeException e) {
+            chat.hideMessage(conversationId, messageId, userId.get());
+            throw e;
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new Dtos.MessageIdResponse(messageId));
 

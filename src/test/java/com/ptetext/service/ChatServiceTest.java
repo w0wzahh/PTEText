@@ -5,7 +5,6 @@ import com.ptetext.entity.chat.ParticipantEntity;
 import com.ptetext.repository.chat.ConversationRepository;
 import com.ptetext.repository.chat.MessageRepository;
 import com.ptetext.repository.chat.ParticipantRepository;
-import com.ptetext.repository.system.AttachmentRepository;
 import com.ptetext.repository.users.UserRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -36,8 +35,7 @@ class ChatServiceTest {
         participants = mock(ParticipantRepository.class);
         messages = mock(MessageRepository.class);
         chat = new ChatService(conversations, participants, messages,
-                mock(UserRepository.class), mock(AttachmentRepository.class),
-                mock(AuditLogger.class));
+                mock(UserRepository.class), mock(AuditLogger.class));
     }
 
     @Test

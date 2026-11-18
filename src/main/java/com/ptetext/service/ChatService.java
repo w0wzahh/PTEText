@@ -3,11 +3,9 @@ package com.ptetext.service;
 import com.ptetext.entity.chat.ConversationEntity;
 import com.ptetext.entity.chat.MessageEntity;
 import com.ptetext.entity.chat.ParticipantEntity;
-import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.repository.chat.ConversationRepository;
 import com.ptetext.repository.chat.MessageRepository;
 import com.ptetext.repository.chat.ParticipantRepository;
-import com.ptetext.repository.system.AttachmentRepository;
 import com.ptetext.repository.users.UserRepository;
 
 import org.springframework.data.domain.PageRequest;
@@ -36,17 +34,14 @@ public class ChatService {
     private final ParticipantRepository participants;
     private final MessageRepository messages;
     private final UserRepository users;
-    private final AttachmentRepository attachments;
     private final AuditLogger audit;
 
     public ChatService(ConversationRepository conversations, ParticipantRepository participants,
-                       MessageRepository messages, UserRepository users,
-                       AttachmentRepository attachments, AuditLogger audit) {
+                       MessageRepository messages, UserRepository users, AuditLogger audit) {
         this.conversations = conversations;
         this.participants = participants;
         this.messages = messages;
         this.users = users;
-        this.attachments = attachments;
         this.audit = audit;
     }
 
@@ -151,7 +146,12 @@ public class ChatService {
 
     @Transactional("chatTransactionManager")
     public long sendAttachment(int conversationId, int senderId, String fileName) {
-
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("File name is required.");
+        }
+        if (fileName.trim().length() > 255) {
+            throw new IllegalArgumentException("File name too long (max 255 characters).");
+        }
         requireParticipant(conversationId, senderId);
         String body = "[attachment] " + fileName.trim();
         MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body));
