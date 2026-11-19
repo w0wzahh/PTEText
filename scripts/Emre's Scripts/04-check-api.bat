@@ -162,6 +162,31 @@ if errorlevel 1 (
 )
 echo.
 
+echo [Attachment upload - ptetext_system] >> "%LOGFILE%"
+echo test-kit upload > "%LOGDIR%\upload.txt"
+curl -s --max-time 10 -X POST "%API%/api/attachment/fileUpload/1" -F "sessionId=!SID!" -F "file=@%LOGDIR%\upload.txt" > "%LOGDIR%\upload.json" 2>"%OUT%"
+type "%LOGDIR%\upload.json" >> "%LOGFILE%"
+findstr messageId "%LOGDIR%\upload.json" >nul
+if errorlevel 1 (
+    echo   FAIL - upload rejected. Response:
+    type "%LOGDIR%\upload.json"
+    set /a FAILS+=1
+) else (
+    echo   OK - file uploaded into conversation 1
+    set /a PASS+=1
+)
+
+curl -s --max-time 5 -o nul -w "%%{http_code}" -X POST "%API%/api/attachment/fileUpload/1" -F "sessionId=definitely-fake" -F "file=@%LOGDIR%\upload.txt" > "%OUT%" 2>nul
+set /p UPCODE=<"%OUT%"
+if "!UPCODE!"=="401" (
+    echo   OK - upload with a fake session rejected with 401
+    set /a PASS+=1
+) else (
+    echo   FAIL - fake-session upload got !UPCODE! instead of 401
+    set /a FAILS+=1
+)
+echo.
+
 echo [Audit - ptetext_system] >> "%LOGFILE%"
 if defined MYSQL (
     "%MYSQL%" -u root -N -e "SELECT COUNT(*) FROM ptetext_system.activity_log" > "%OUT%" 2>nul

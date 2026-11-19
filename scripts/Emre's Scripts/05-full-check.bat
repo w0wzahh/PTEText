@@ -78,13 +78,10 @@ exit /b %OVERALL%
 :waitup
 curl -s --max-time 3 -o nul http://localhost:8080/api/health 2>nul
 if not errorlevel 1 exit /b 0
-echo App is not running - booting it in a separate window.
-echo Waiting for it to come up ^(up to ~60s^)...
-start "PTEText app" /min cmd /c "cd /d "%~dp0..\.." && mvn -q spring-boot:run"
+echo App is not running - dev-server.bat boots it in its own window
+echo and waits for it to come up ^(up to ~2 min^)...
+call "%~dp0..\dev-server.bat"
 set APP_STARTED=1
-for /l %%i in (1,1,30) do (
-    "%SystemRoot%\System32\timeout.exe" /t 2 /nobreak >nul
-    curl -s --max-time 2 -o nul http://localhost:8080/api/health 2>nul
-    if not errorlevel 1 exit /b 0
-)
-exit /b 1
+curl -s --max-time 3 -o nul http://localhost:8080/api/health 2>nul
+if errorlevel 1 exit /b 1
+exit /b 0

@@ -1,15 +1,26 @@
 @echo off
-REM PTEText database setup — XAMPP's MySQL must be running, obviously.
-REM Double-click, read the output, celebrate.
-REM If XAMPP isn't in C:\xampp, edit the MYSQL path below.
+REM PTEText database setup - MySQL must be running (start it in XAMPP first).
+REM If mysql.exe lives somewhere unusual, set a MYSQL env var to its full path.
 setlocal
 
-set MYSQL=C:\xampp\mysql\bin\mysql.exe
+call "%~dp0Emre's Scripts\_detect.bat"
 set SQLDIR=%~dp0..\sql
 
-if not exist "%MYSQL%" (
-    echo Could not find mysql.exe at %MYSQL%
-    echo Either fix the path above or run the sql/ files in phpMyAdmin yourself.
+if not defined MYSQL (
+    echo Could not find mysql.exe anywhere the kit looks:
+    echo   PATH, C:\xampp, D:\xampp, E:\xampp, wamp64,
+    echo   Program Files\MySQL, Program Files\MariaDB
+    echo Set a MYSQL env var with the full path, or run the sql\ files
+    echo in phpMyAdmin yourself instead.
+    pause
+    exit /b 1
+)
+echo using %MYSQL%
+echo.
+
+"%MYSQL%" -u root -e "SELECT 1" >nul 2>&1
+if errorlevel 1 (
+    echo MySQL is not answering - start it in the XAMPP control panel first.
     pause
     exit /b 1
 )
@@ -27,6 +38,7 @@ exit /b 0
 
 :fail
 echo.
-echo Setup failed. Is MySQL actually running in the XAMPP control panel? :)
+echo Setup failed partway through. The error is above - and if some
+echo databases already exist, that is fine, just fix the error and rerun.
 pause
 exit /b 1
