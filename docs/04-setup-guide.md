@@ -54,6 +54,14 @@ Double-click `scripts\run.bat`, or in a terminal inside the project folder:
 mvn spring-boot:run
 ```
 
+`run.bat` now warns you if the port is already taken (server probably
+already running) or if MySQL isn't answering on 3306 (start XAMPP first).
+
+Rather have the server in its own window you can forget about? Run
+`scripts\dev-server.bat` instead - it checks everything, starts the
+server in a separate window, and tells you when it's up. Safe to run
+repeatedly; it does nothing if the server is already running.
+
 Or run it from your IDE - IntelliJ/Eclipse: run the `PteTextApplication`
 main class. NetBeans: the Run button (F6) works out of the box, the
 project ships an `nbactions.xml` that maps it to `spring-boot:run`.
