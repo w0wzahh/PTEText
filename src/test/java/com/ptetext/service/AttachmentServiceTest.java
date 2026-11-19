@@ -124,4 +124,25 @@ class AttachmentServiceTest {
         assertThrows(FileFailedToUploadException.class,
                 () -> service.sendAttachment(5L, 1, "x.png", "image/png", 5L, mpf));
     }
+
+    @Test
+    void sendAttachmentDeletesStoredFileWhenInsertFails() throws IOException {
+        MultipartFile mpf = mock(MultipartFile.class);
+        when(mpf.getOriginalFilename()).thenReturn("doc.pdf");
+        org.mockito.Mockito.doAnswer(inv -> {
+            Path target = inv.getArgument(0);
+            java.nio.file.Files.createDirectories(target.getParent());
+            java.nio.file.Files.write(target, new byte[]{1});
+            return null;
+        }).when(mpf).transferTo(any(Path.class));
+        doThrow(new RuntimeException("proc blew up")).when(repo)
+                .fileUpload(any(), anyInt(), anyString(), anyString(), any(), anyString());
+
+        assertThrows(RuntimeException.class,
+                () -> service.sendAttachment(5L, 1, "doc.pdf", "application/pdf", 1L, mpf));
+
+        try (var stream = java.nio.file.Files.list(Path.of("target/test-uploads"))) {
+            assertEquals(0, stream.count(), "orphan file left on disk");
+        }
+    }
 }

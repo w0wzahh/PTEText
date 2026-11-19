@@ -140,4 +140,50 @@ class ChatServiceTest {
                 () -> chat.hideMessage(1, 5L, 1));
         verify(messages, never()).save(any());
     }
+
+    private static MessageEntity withId(MessageEntity m, long id) {
+        try {
+            java.lang.reflect.Field f = MessageEntity.class.getDeclaredField("messageId");
+            f.setAccessible(true);
+            f.set(m, id);
+            return m;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    @Test
+    void sendAttachmentCreatesPlaceholderMessage() {
+        memberOf(1, 1);
+        when(messages.save(any())).thenAnswer(inv -> withId(inv.getArgument(0), 42L));
+
+        long id = chat.sendAttachment(1, 1, "report.pdf");
+
+        assertEquals(42L, id);
+        verify(messages).save(org.mockito.ArgumentMatchers.argThat(
+                (MessageEntity m) -> "[attachment] report.pdf".equals(m.getBody())));
+    }
+
+    @Test
+    void sendAttachmentRejectsBlankName() {
+        assertThrows(IllegalArgumentException.class,
+                () -> chat.sendAttachment(1, 1, "   "));
+        verify(messages, never()).save(any());
+    }
+
+    @Test
+    void sendAttachmentRejectsTooLongName() {
+        assertThrows(IllegalArgumentException.class,
+                () -> chat.sendAttachment(1, 1, "x".repeat(256)));
+        verify(messages, never()).save(any());
+    }
+
+    @Test
+    void sendAttachmentRejectsNonMember() {
+        when(conversations.existsById(9)).thenReturn(true);
+        when(participants.existsByConversationIdAndUserId(9, 1)).thenReturn(false);
+        assertThrows(IllegalArgumentException.class,
+                () -> chat.sendAttachment(9, 1, "a.txt"));
+        verify(messages, never()).save(any());
+    }
 }
