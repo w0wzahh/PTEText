@@ -6,27 +6,13 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * DEV HELPER: starts the PTEText server (scripts/run.bat) if it isn't already
- * running. Clients call {@link #ensureRunning()} on startup so the API is
- * reachable without anyone having to think about it. Can also be run on its
- * own via scripts/dev-server.bat (see {@link #main(String[])}).
- */
+/** Ensures the PTEText API is running on localhost:8080, starting it via scripts/run.bat if not. */
 public class DevServer {
 
-    private static final String HOST = "localhost";
-    private static final int SERVER_PORT = 8080; // server.port in application.properties
-    private static final int MYSQL_PORT = 3306;  // XAMPP MySQL, the server needs it
-
-    // "mvn spring-boot:run" compiles first, so give it time
+    private static final int SERVER_PORT = 8080;
+    private static final int MYSQL_PORT = 3306;
     private static final int WAIT_SECONDS = 120;
 
-    // Last-resort location, only used if run.bat can't be found from the working directory
-    private static final Path FALLBACK = Path.of(
-            System.getProperty("user.home"),
-            "Desktop", "Projects", "PTEText", "scripts", "run.bat");
-
-    /** Standalone entry point: {@code java -cp target/classes com.ptetext.client.DevServer} */
     public static void main(String[] args) {
         ensureRunning();
     }
@@ -36,57 +22,68 @@ public class DevServer {
             System.out.println("[dev] Server already running.");
             return;
         }
-
         if (!isUp(MYSQL_PORT)) {
-            System.out.println("[dev] Warning: MySQL isn't answering on port " + MYSQL_PORT
-                    + ". Start it in XAMPP, otherwise the server will fail to start.");
+            System.out.println("[dev] Warning: MySQL isn't answering on " + MYSQL_PORT
+                    + " - start it in XAMPP or the server will fail.");
         }
 
         File script = findRunBat();
         if (script == null) {
-            System.out.println("[dev] Could not find scripts/run.bat, start the server manually.");
+            System.out.println("[dev] scripts/run.bat not found - start the server manually.");
             return;
         }
 
-        System.out.println("[dev] Server not running, starting " + script + " ...");
+        System.out.println("[dev] Starting " + script + " ...");
         try {
-            // Own console window; /k keeps it open if the server crashes so you can read why.
-            // run.bat does "cd /d %~dp0.." itself, so the working directory doesn't matter.
             new ProcessBuilder("cmd", "/c", "start", "\"PTEText server\"",
                     "cmd", "/k", "\"" + script.getAbsolutePath() + "\"")
                     .directory(script.getParentFile())
                     .start();
-
-            for (int i = 0; i < WAIT_SECONDS * 2; i++) {
-                Thread.sleep(500);
-                if (isUp(SERVER_PORT)) {
-                    System.out.println("[dev] Server is up.");
-                    return;
-                }
-            }
-            System.out.println("[dev] Waited " + WAIT_SECONDS + "s and nothing is on port " + SERVER_PORT
-                    + ". Check the server window for errors.");
         } catch (Exception e) {
-            System.out.println("[dev] Could not start server: " + e);
+            System.out.println("[dev] Could not start server: " + e.getMessage());
+            return;
         }
+
+        for (int waited = 0; waited < WAIT_SECONDS * 1000; waited += 500) {
+            if (isUp(SERVER_PORT)) {
+                System.out.println("[dev] Server is up.");
+                return;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        System.out.println("[dev] No response on " + SERVER_PORT + " after " + WAIT_SECONDS
+                + "s - check the server window for errors.");
     }
 
-    /** Walks up from the working directory (NetBeans uses the project root) looking for scripts/run.bat. */
     private static File findRunBat() {
         Path dir = Path.of("").toAbsolutePath();
         while (dir != null) {
-            Path candidate = dir.resolve("scripts").resolve("run.bat");
-            if (Files.isRegularFile(candidate)) {
-                return candidate.toFile();
+            Path script = dir.resolve("scripts/run.bat");
+            if (Files.isRegularFile(script)) {
+                return script.toFile();
             }
             dir = dir.getParent();
         }
-        return Files.isRegularFile(FALLBACK) ? FALLBACK.toFile() : null;
+        try {
+            Path classes = Path.of(DevServer.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI());
+            Path script = classes.getParent().getParent().resolve("scripts/run.bat");
+            if (Files.isRegularFile(script)) {
+                return script.toFile();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private static boolean isUp(int port) {
         try (Socket s = new Socket()) {
-            s.connect(new InetSocketAddress(HOST, port), 500);
+            s.connect(new InetSocketAddress("localhost", port), 500);
             return true;
         } catch (Exception e) {
             return false;
