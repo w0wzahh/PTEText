@@ -96,12 +96,18 @@ public class AttachmentController {
             throw  new IllegalArgumentException("File type not allowed");
         }
         String mimeType = req.file().getContentType();
+        if (mimeType == null) {
+            mimeType = "application/octet-stream";
+        }
         Long messageId = chat.sendAttachment(conversationId, userId.get(), fileName);
 
         try {
             attachment.sendAttachment(messageId, userId.get(), fileName, mimeType, fileSize, req.file());
         } catch (RuntimeException e) {
-            chat.hideMessage(conversationId, messageId, userId.get());
+            try {
+                chat.hideMessage(conversationId, messageId, userId.get());
+            } catch (RuntimeException ignored) {
+            }
             throw e;
         }
 

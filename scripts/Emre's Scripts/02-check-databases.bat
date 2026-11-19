@@ -67,6 +67,7 @@ call :checkproc ptetext_users sp_register_user
 call :checkproc ptetext_users sp_open_session
 call :checkproc ptetext_users sp_cleanup_expired_sessions
 call :checkproc ptetext_system sp_log_action
+call :checkproc ptetext_system sp_file_upload
 echo.
 
 echo [Row counts] >> "%LOGFILE%"

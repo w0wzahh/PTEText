@@ -157,8 +157,6 @@ public class ChatService {
         MessageEntity saved = messages.save(new MessageEntity(conversationId, senderId, body));
         audit.log(senderId, "MESSAGE_SENT",
                 "Sent message to conversation " + conversationId);
-        audit.log(senderId, "ATTACHMENT_ADDED",
-                "Attached " + fileName.trim() + " to message " + saved.getMessageId());
         return saved.getMessageId();
     }
 

@@ -23,3 +23,6 @@ Thumbs.db
 
 # SQLTools scratchpads
 *.session.sql
+
+# uploaded files
+data/
