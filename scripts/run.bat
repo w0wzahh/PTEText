@@ -1,6 +1,7 @@
 @echo off
 REM Build + run the API (needs JDK 17+ and Maven on PATH)
 REM Swagger UI:  http://localhost:8080/swagger-ui/index.html
+title PTEText server
 cd /d "%~dp0.."
 
 netstat -ano | findstr ":8080.*LISTENING" >nul
@@ -14,7 +15,7 @@ netstat -ano | findstr ":3306.*LISTENING" >nul
 if errorlevel 1 (
     echo [run] WARNING: nothing is listening on port 3306 - start MySQL in XAMPP first.
     echo [run] The server will fail its database checks without it.
-    timeout /t 4 >nul
+    ping -n 5 127.0.0.1 >nul
 )
 
 mvn spring-boot:run
