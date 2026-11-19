@@ -23,9 +23,47 @@ public class ConsoleClient {
     static private int myId;
 
     public static void main(String[] args) throws Exception {
+
+        //delete later when project is done. Its vibecoded slop for my dumbass
+        DevServer.ensureRunning();
+
+
         System.out.println("PTEText console client");
 
-        login();
+        boolean running = true;
+        while(running){
+            try{
+                if(sessionId == null){
+                System.out.println("1. Log in\n2. Register\n0. Quit");
+                switch(ask("> ")){
+                    case "0":
+                        running = false;
+                        break;
+                    case "1":
+                        login();
+                        break;
+                    case "2":
+                        System.out.println("Nothing yet.");
+                        break;
+                    default:
+                        System.out.println("Unknown entry.");
+                }
+                } else{
+                    System.out.println("[ "+ myName +" ]");
+                    switch(ask("> ")){
+                        case "0" -> running = false;
+                        case "1" -> System.out.println("Nothing yet.");
+                        case "2" -> System.out.println("Nothing yet.");
+                        case "3" -> System.out.println("Nothing yet.");
+                        case "4" -> System.out.println("Nothing yet.");
+                        case "5" -> System.out.println("Nothing yet.");
+                        case "6" -> System.out.println("Nothing yet.");
+                    }
+                }
+            }catch (Exception e){
+                System.out.println("Error: "+ e.getMessage());
+            }
+        }
 
     }
 
@@ -67,6 +105,7 @@ public class ConsoleClient {
         if(r.statusCode() /100 == 2){
             return true;
         }
+
         if(r.statusCode() == 401 && sessionId != null){
             sessionId = null;
             myName = null;
@@ -80,8 +119,10 @@ public class ConsoleClient {
 
     //login method
     static void login() throws Exception{
+        String username = ask("Username: ");
+        String password = ask("Password: ");
         HttpResponse<String> response = call("POST", "/api/auth/login", 
-                                            Map.of("username", "alice", "password", "password123"));
+                                            Map.of("username", username, "password", password));
 
         if(!success(response)){
             return;
@@ -94,4 +135,20 @@ public class ConsoleClient {
 
         System.out.println("Logged in as " + myName);
     }
+
+    //menu loop
+    static String ask(String prompt){
+        System.out.print(prompt);
+        return in.nextLine().trim();
+    }
+
+    static long askNumber(String prompt){
+        try {
+            return Long.parseLong(ask(prompt));
+        } catch (Exception NumberFormatException) {
+            return -1;
+        }
+    }
+
+    
 }
