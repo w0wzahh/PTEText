@@ -73,7 +73,7 @@ public final class Dtos {
     public record SendAttachmentRequest(String sessionId, MultipartFile file) {
     }
 
-    public record FindFileRequest(String searchType, String input) {}
+    public record FindFileRequest(String searchType, String input, String sessionId) {}
 
-    public record DownloadResult(Resource resource, String originalName, String mimeType, Long sizeBytes) {}
+    public record DownloadResult(Resource resource, String originalName, String mimeType, Long sizeBytes, Long attachmentId) {}
 }

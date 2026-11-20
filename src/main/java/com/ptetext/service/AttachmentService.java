@@ -112,7 +112,7 @@ public class AttachmentService {
         if (!fileResource.exists()) {
         throw new NoFileFoundException(input+" may not exist!");
         }
-        return new Dtos.DownloadResult(fileResource,file.getFileName(),file.getMimeType(), file.getSizeBytes()) ;
+        return new Dtos.DownloadResult(fileResource,file.getFileName(),file.getMimeType(), file.getSizeBytes(),file.getAttachmentId()) ;
     }
 
     private AttachmentEntity searchTypeMethod(String searchType, String input) {
