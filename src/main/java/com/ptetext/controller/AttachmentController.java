@@ -2,14 +2,12 @@ package com.ptetext.controller;
 
 import com.ptetext.dto.Dtos;
 import com.ptetext.dto.Dtos.ErrorResponse;
-import com.ptetext.exception.FileFailedToDownloadException;
+
 import com.ptetext.service.AttachmentService;
 import com.ptetext.service.AuthService;
 import com.ptetext.service.ChatService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.activation.MimeType;
-import jakarta.activation.MimeTypeParseException;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -138,5 +136,18 @@ public class AttachmentController {
                 StandardCharsets.UTF_8).build();
         return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .contentLength(downloadResult.sizeBytes()).contentType(fileType).body(downloadResult.resource());
+    }
+
+    @DeleteMapping(value = "/fileDeletion/{attachmentId}")
+    public ResponseEntity<?> fileDeletion(@RequestParam String sessionId,
+                                          @PathVariable("attachmentId") Long attachmentId) {
+        Optional<Integer> userId = auth .validateSession(sessionId);
+        if (userId.isEmpty()) {
+            return unauthorized();
+        }
+        attachment.fileDelete(attachmentId);
+
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

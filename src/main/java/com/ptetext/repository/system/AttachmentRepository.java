@@ -3,6 +3,7 @@ package com.ptetext.repository.system;
 import com.ptetext.entity.system.AttachmentEntity;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
@@ -30,7 +31,8 @@ public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Lo
     void fileUpload(Long p_message_id, int p_uploader_id, String p_file_name,
                           String p_mime_type, Long p_size_bytes, String p_stored_path);
 
-
-
+    @Modifying
+    @Query(value ="DELETE FROM attachments WHERE attachment_id = :attachmentId", nativeQuery = true)
+    void fileDeletion(@Param("attachmentId") Long id);
 
 }

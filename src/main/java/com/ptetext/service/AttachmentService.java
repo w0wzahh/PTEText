@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -121,7 +122,23 @@ public class AttachmentService {
             case "messageId"-> file = repo.findFileByMessageId(Long.parseLong(input)).orElseThrow(() -> new NoFileFoundException(Long.parseLong(input)+" was not found!"));
             case "attachmentId"->file = repo.findFileByAttachmentId(Long.parseLong(input)).orElseThrow(() -> new NoFileFoundException(Long.parseLong(input)+" was not found!"));
             case "fileName"->file = repo.findFileByName(input).orElseThrow(() -> new NoFileFoundException(input+" was not found!"));
-            default ->throw new IllegalArgumentException("Invalid search type");};
+            default ->throw new IllegalArgumentException("Invalid search type");}
         return file;
+    }
+    @Transactional("systemTransactionManager")
+    public void fileDelete(Long attachmentId) {
+        Optional<AttachmentEntity> file = repo.findFileByAttachmentId(attachmentId);
+        if(file.isEmpty()) {
+            throw new NoFileFoundException(attachmentId+" was not found!");
+        }
+
+        Path filepath = Path.of(uploadDir).resolve(file.get().getStoredPath());
+        repo.fileDeletion(attachmentId);
+        try{
+            Files.deleteIfExists(filepath);
+        }catch (IOException e){
+            throw new NoFileFoundException(attachmentId+" was not found!");
+        }
+
     }
 }
