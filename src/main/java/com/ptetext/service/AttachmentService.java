@@ -1,11 +1,14 @@
 package com.ptetext.service;
 
+import com.ptetext.dto.Dtos;
 import com.ptetext.entity.system.AttachmentEntity;
 import com.ptetext.exception.FileFailedToUploadException;
 import com.ptetext.exception.NoFileFoundException;
 import com.ptetext.repository.system.AttachmentRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -30,34 +34,27 @@ public class AttachmentService {
         this.audit = audit;
     }
 
-    public List<AttachmentEntity> findFileByName(String name) {
-       List<AttachmentEntity> attchEntList = repo.findFileByName(name);
+    public AttachmentEntity findFileByName(String name) {
 
-       if (attchEntList.isEmpty()) {
-           throw new NoFileFoundException(name+" was not found!");
-       }
-       return attchEntList;
-   }
 
+        return repo.findFileByName(name)
+                .orElseThrow(() -> new NoFileFoundException(name + "was not found"));
+    }
     public AttachmentEntity findFileByAttachmentId(Long id) {
         return repo.findFileByAttachmentId(id)
                 .orElseThrow(() -> new NoFileFoundException(id+" was not found!"));
     }
 
-    public List<AttachmentEntity> findFileByMessageId(Long id) {
-        List<AttachmentEntity> attchEntList = repo.findFileByMessageId(id);
-
-        if (attchEntList.isEmpty()) {
-            throw new NoFileFoundException(id+" was not found!");
-        }
-        return attchEntList;
+    public AttachmentEntity findFileByMessageId(Long id) {
+        return repo.findFileByMessageId(id)
+                .orElseThrow(() -> new NoFileFoundException(id+" was not found!"));
     }
 
     public List<AttachmentEntity> findFileByUploaderId(int id) {
         List<AttachmentEntity> attchEntList = repo.findFileByUploaderId(id);
 
         if (attchEntList.isEmpty()) {
-            throw new NoFileFoundException(id+" was not found!");
+            throw new NoFileFoundException(id+" had no attachments!");
         }
         return attchEntList;
     }
@@ -105,4 +102,59 @@ public class AttachmentService {
         Files.createDirectories(uploadFolder);
     }
 
+    public Dtos.DownloadResult downloadFile(String searchType, String input) {
+        AttachmentEntity file = searchBy(searchType, input);
+        Resource fileResource = new FileSystemResource(resolveInUploadDir(file.getStoredPath()));
+        if (!fileResource.exists()) {
+            throw new NoFileFoundException(input + " was not found on disk");
+        }
+        return new Dtos.DownloadResult(fileResource, file.getFileName(), file.getMimeType(),
+                file.getSizeBytes(), file.getAttachmentId());
+    }
+
+    private AttachmentEntity searchBy(String searchType, String input) {
+        return switch (searchType) {
+            case "messageId" -> repo.findFileByMessageId(parseId(input))
+                    .orElseThrow(() -> new NoFileFoundException(input + " was not found!"));
+            case "attachmentId" -> repo.findFileByAttachmentId(parseId(input))
+                    .orElseThrow(() -> new NoFileFoundException(input + " was not found!"));
+            case "fileName" -> repo.findFileByName(input)
+                    .orElseThrow(() -> new NoFileFoundException(input + " was not found!"));
+            default -> throw new IllegalArgumentException("Invalid search type");
+        };
+    }
+
+    private long parseId(String input) {
+        try {
+            return Long.parseLong(input);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid id: " + input);
+        }
+    }
+
+    private Path resolveInUploadDir(String storedPath) {
+        Path base = Path.of(uploadDir).toAbsolutePath().normalize();
+        Path target = base.resolve(storedPath).normalize();
+        if (!target.startsWith(base)) {
+            throw new NoFileFoundException("File not found");
+        }
+        return target;
+    }
+
+    @Transactional("systemTransactionManager")
+    public void fileDelete(Long attachmentId, int userId) {
+        AttachmentEntity file = repo.findFileByAttachmentId(attachmentId)
+                .orElseThrow(() -> new NoFileFoundException(attachmentId + " was not found!"));
+        if (file.getUploaderId() == null || file.getUploaderId() != userId) {
+            throw new IllegalArgumentException("You can only delete your own attachments.");
+        }
+        try {
+            Files.deleteIfExists(resolveInUploadDir(file.getStoredPath()));
+        } catch (IOException ignored) {
+            // row still gets deleted - a missing/unreadable file must not block it
+        }
+        repo.fileDeletion(attachmentId);
+        audit.log(userId, "ATTACHMENT_DELETED",
+                "Deleted attachment " + attachmentId + " (" + file.getFileName() + ")");
+    }
 }

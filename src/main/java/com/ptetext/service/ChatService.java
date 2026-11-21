@@ -260,7 +260,7 @@ public class ChatService {
         return conversationId;
     }
 
-    private void requireParticipant(int conversationId, int userId) {
+    public void requireParticipant(int conversationId, int userId) {
         if (!conversations.existsById(conversationId)) {
             throw new IllegalArgumentException("No conversation with id " + conversationId);
         }
