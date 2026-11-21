@@ -15,7 +15,7 @@ import java.util.Optional;
 @Repository
 public interface AttachmentRepository extends JpaRepository<AttachmentEntity, Long> {
 
-    @Query(value = "SELECT * FROM attachments WHERE file_name = :fileName", nativeQuery = true)
+    @Query(value = "SELECT * FROM attachments WHERE file_name = :fileName ORDER BY attachment_id DESC LIMIT 1", nativeQuery = true)
     Optional<AttachmentEntity> findFileByName(@Param("fileName") String name);
 
     @Query(value = "SELECT * FROM attachments WHERE attachment_id = :attachmentId", nativeQuery = true)

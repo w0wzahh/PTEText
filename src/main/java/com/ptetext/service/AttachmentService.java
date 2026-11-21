@@ -103,42 +103,58 @@ public class AttachmentService {
     }
 
     public Dtos.DownloadResult downloadFile(String searchType, String input) {
-        AttachmentEntity file= searchTypeMethod(searchType, input);
-        Path base = Path.of(uploadDir).toAbsolutePath().normalize();
-        Path target = base.resolve(file.getStoredPath()).normalize();
-        if (!target.startsWith(base)) {
-            throw new NoFileFoundException("...");
-        }
-        Resource fileResource = new FileSystemResource(target);
+        AttachmentEntity file = searchBy(searchType, input);
+        Resource fileResource = new FileSystemResource(resolveInUploadDir(file.getStoredPath()));
         if (!fileResource.exists()) {
-        throw new NoFileFoundException(input+" may not exist!");
+            throw new NoFileFoundException(input + " was not found on disk");
         }
-        return new Dtos.DownloadResult(fileResource,file.getFileName(),file.getMimeType(), file.getSizeBytes(),file.getAttachmentId()) ;
+        return new Dtos.DownloadResult(fileResource, file.getFileName(), file.getMimeType(),
+                file.getSizeBytes(), file.getAttachmentId());
     }
 
-    private AttachmentEntity searchTypeMethod(String searchType, String input) {
-        AttachmentEntity file;
-        switch (searchType) {
-            case "messageId"-> file = repo.findFileByMessageId(Long.parseLong(input)).orElseThrow(() -> new NoFileFoundException(Long.parseLong(input)+" was not found!"));
-            case "attachmentId"->file = repo.findFileByAttachmentId(Long.parseLong(input)).orElseThrow(() -> new NoFileFoundException(Long.parseLong(input)+" was not found!"));
-            case "fileName"->file = repo.findFileByName(input).orElseThrow(() -> new NoFileFoundException(input+" was not found!"));
-            default ->throw new IllegalArgumentException("Invalid search type");}
-        return file;
+    private AttachmentEntity searchBy(String searchType, String input) {
+        return switch (searchType) {
+            case "messageId" -> repo.findFileByMessageId(parseId(input))
+                    .orElseThrow(() -> new NoFileFoundException(input + " was not found!"));
+            case "attachmentId" -> repo.findFileByAttachmentId(parseId(input))
+                    .orElseThrow(() -> new NoFileFoundException(input + " was not found!"));
+            case "fileName" -> repo.findFileByName(input)
+                    .orElseThrow(() -> new NoFileFoundException(input + " was not found!"));
+            default -> throw new IllegalArgumentException("Invalid search type");
+        };
     }
+
+    private long parseId(String input) {
+        try {
+            return Long.parseLong(input);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid id: " + input);
+        }
+    }
+
+    private Path resolveInUploadDir(String storedPath) {
+        Path base = Path.of(uploadDir).toAbsolutePath().normalize();
+        Path target = base.resolve(storedPath).normalize();
+        if (!target.startsWith(base)) {
+            throw new NoFileFoundException("File not found");
+        }
+        return target;
+    }
+
     @Transactional("systemTransactionManager")
-    public void fileDelete(Long attachmentId) {
-        Optional<AttachmentEntity> file = repo.findFileByAttachmentId(attachmentId);
-        if(file.isEmpty()) {
-            throw new NoFileFoundException(attachmentId+" was not found!");
+    public void fileDelete(Long attachmentId, int userId) {
+        AttachmentEntity file = repo.findFileByAttachmentId(attachmentId)
+                .orElseThrow(() -> new NoFileFoundException(attachmentId + " was not found!"));
+        if (file.getUploaderId() == null || file.getUploaderId() != userId) {
+            throw new IllegalArgumentException("You can only delete your own attachments.");
         }
-
-        Path filepath = Path.of(uploadDir).resolve(file.get().getStoredPath());
+        try {
+            Files.deleteIfExists(resolveInUploadDir(file.getStoredPath()));
+        } catch (IOException ignored) {
+            // row still gets deleted - a missing/unreadable file must not block it
+        }
         repo.fileDeletion(attachmentId);
-        try{
-            Files.deleteIfExists(filepath);
-        }catch (IOException e){
-            throw new NoFileFoundException(attachmentId+" was not found!");
-        }
-
+        audit.log(userId, "ATTACHMENT_DELETED",
+                "Deleted attachment " + attachmentId + " (" + file.getFileName() + ")");
     }
 }

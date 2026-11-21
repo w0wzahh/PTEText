@@ -9,11 +9,16 @@ import com.ptetext.service.ChatService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
-import org.springframework.http.*;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Optional;
+import java.util.Set;
 
 
 @RestController
@@ -116,38 +121,37 @@ public class AttachmentController {
 
     @PostMapping(value = "/filedownload/{conversationId}")
     public ResponseEntity<?> fileDownload(@RequestBody Dtos.FindFileRequest req,
-                                                 @PathVariable("conversationId") int conversationId)  {
+                                          @PathVariable("conversationId") int conversationId) {
         Optional<Integer> userId = auth.validateSession(req.sessionId());
         if (userId.isEmpty()) {
             return unauthorized();
         }
+        chat.requireParticipant(conversationId, userId.get());
         Dtos.DownloadResult downloadResult = attachment.downloadFile(req.searchType(), req.input());
-        MediaType fileType;
-        try {
-            if (downloadResult.mimeType() == null ||  downloadResult.mimeType().isBlank()) {
-                fileType = MediaType.APPLICATION_OCTET_STREAM;
-            }else {
+        MediaType fileType = MediaType.APPLICATION_OCTET_STREAM;
+        if (downloadResult.mimeType() != null && !downloadResult.mimeType().isBlank()) {
+            try {
                 fileType = MediaType.parseMediaType(downloadResult.mimeType());
+            } catch (IllegalArgumentException ignored) {
             }
-        }catch (IllegalArgumentException e){
-            throw  new IllegalArgumentException("File type not allowed");
         }
-        ContentDisposition disposition = ContentDisposition.attachment().filename(downloadResult.originalName(),
-                StandardCharsets.UTF_8).build();
-        return ResponseEntity.status(HttpStatus.OK).header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .contentLength(downloadResult.sizeBytes()).contentType(fileType).body(downloadResult.resource());
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(downloadResult.originalName(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentLength(downloadResult.sizeBytes())
+                .contentType(fileType)
+                .body(downloadResult.resource());
     }
 
-    @DeleteMapping(value = "/fileDeletion/{attachmentId}")
+    @DeleteMapping("/fileDeletion/{attachmentId}")
     public ResponseEntity<?> fileDeletion(@RequestParam String sessionId,
                                           @PathVariable("attachmentId") Long attachmentId) {
-        Optional<Integer> userId = auth .validateSession(sessionId);
+        Optional<Integer> userId = auth.validateSession(sessionId);
         if (userId.isEmpty()) {
             return unauthorized();
         }
-        attachment.fileDelete(attachmentId);
-
-
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        attachment.fileDelete(attachmentId, userId.get());
+        return ResponseEntity.noContent().build();
     }
 }
