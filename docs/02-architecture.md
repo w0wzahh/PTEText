@@ -63,6 +63,18 @@ Spring Data calls them two ways:
   right database. Wrap procs in a `@Component` like that; services call
   the bean.
 
+## Sessions: the @RequiresSession aspect
+
+Every endpoint that needs a logged-in user is annotated
+`@RequiresSession` (`aspect/`). The `@Around` advice in
+`SessionAuthAspect` finds the sessionId - a `@RequestParam String
+sessionId` argument, or a `sessionId()` accessor on any request-body
+record - validates it, and either returns 401 itself or stores the user
+id in `SessionContext` for the method to read via
+`SessionContext.userId()`. Controllers no longer call
+`auth.validateSession` or write their own 401 block; add the annotation
+and read the user id, that's the whole contract.
+
 ## Errors
 
 Throw `IllegalArgumentException` for bad input (→ `400`) and
@@ -74,6 +86,7 @@ controller never needs a try/catch.
 
 | Package | What's inside | Who mainly edits it |
 |---------|---------------|---------------------|
+| `aspect/` | `@RequiresSession`, `SessionAuthAspect`, `SessionContext` | nobody, it's shared |
 | `controller/` | `AuthController`, `UserController`, `HealthController` (+ yours) | each slice adds its own |
 | `dto/` | `Dtos.java`, request/response records | each slice adds records |
 | `entity/` | `users/`, `chat/`, `system/` - `@Entity` per table | rarely (schema = `sql/`) |

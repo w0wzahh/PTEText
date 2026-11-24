@@ -1,5 +1,6 @@
 package com.ptetext.controller;
 
+import com.ptetext.aspect.RequiresSession;
 import com.ptetext.dto.Dtos.ChangePasswordRequest;
 import com.ptetext.dto.Dtos.ErrorResponse;
 import com.ptetext.dto.Dtos.LoginRequest;
@@ -62,6 +63,7 @@ public class AuthController {
                 new LoginResponse(session.get().getSessionId(), user));
     }
 
+    @RequiresSession
     @PostMapping("/logout")
     @Operation(summary = "Invalidate a session token")
     public ResponseEntity<Void> logout(@RequestBody SessionRequest req) {
@@ -69,13 +71,10 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @RequiresSession
     @PostMapping("/change-password")
     @Operation(summary = "Change password (needs session + current password)")
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest req) {
-        if (auth.validateSession(req.sessionId()).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("Session invalid or expired"));
-        }
         auth.changePassword(req.sessionId(), req.currentPassword(), req.newPassword());
         return ResponseEntity.noContent().build();
     }

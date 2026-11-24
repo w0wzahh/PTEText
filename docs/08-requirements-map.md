@@ -50,12 +50,22 @@ Full column details: [03-database-schema.md](03-database-schema.md)
 | 4 | `SessionDao.findValidUserId` | compound WHERE: token + `is_valid` + expiry |
 | 5 | `SessionDao.countActiveSessions` | aggregate `COUNT(*)` with conditions |
 
-## 4. Chosen aspect, security + logging
+## 4. Chosen aspect: session authorization via Spring AOP
 
-- Audit logging of every action to `ptetext_system.activity_log` (`REGISTER`, `LOGIN`, `LOGIN_FAILED`, `LOGIN_LOCKED`, `LOGOUT`, ...)
+`aspect/SessionAuthAspect` + `@RequiresSession` - a single `@Around`
+aspect guards every private endpoint. Annotated controller methods get
+their session validated automatically; the aspect pulls `sessionId` out
+of `@RequestParam` args or any body record's `sessionId()` accessor,
+rejects bad sessions with 401, and exposes the resolved user id through
+`SessionContext.userId()`. It replaced ~19 hand-rolled
+`validateSession` + `if empty return 401` blocks across five
+controllers.
+
+Also already in place:
+
+- Audit logging of every action to `ptetext_system.activity_log` (`REGISTER`, `LOGIN`, `LOGIN_FAILED`, `LOGIN_LOCKED`, `LOGOUT`, `ATTACHMENT_ADDED`, `ATTACHMENT_DELETED`, ...)
 - Login brute-force throttle: `service/LoginThrottle.java`
-- PBKDF2-HMAC-SHA256 password hashing (600k iters) with transparent legacy upgrades: `util/PasswordHasher.java`
-- Constant-time hash comparison, masked console password input
+- BCrypt/PBKDF2 password hashing with transparent legacy upgrades: `util/PasswordHasher.java`
 
 ## 5. Who did what
 

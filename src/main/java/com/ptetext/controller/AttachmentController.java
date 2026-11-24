@@ -1,10 +1,10 @@
 package com.ptetext.controller;
 
+import com.ptetext.aspect.RequiresSession;
+import com.ptetext.aspect.SessionContext;
 import com.ptetext.dto.Dtos;
-import com.ptetext.dto.Dtos.ErrorResponse;
 
 import com.ptetext.service.AttachmentService;
-import com.ptetext.service.AuthService;
 import com.ptetext.service.ChatService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -17,75 +17,54 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.Set;
-
 
 @RestController
 @RequestMapping("/api/attachment")
 @Tag(name = "Attachment")
 public class AttachmentController {
 
-
     private final AttachmentService attachment;
-    private final AuthService auth;
-    private  final ChatService chat;
+    private final ChatService chat;
 
-    public AttachmentController(AttachmentService attachment, AuthService auth, ChatService chat) {
+    public AttachmentController(AttachmentService attachment, ChatService chat) {
         this.attachment = attachment;
-        this.auth = auth;
-
         this.chat = chat;
     }
 
+    @RequiresSession
     @GetMapping(value = "/findFileByName/{fileName}")
     public ResponseEntity<?> findFileByName(@PathVariable("fileName") String fileName,
                                             @RequestParam String sessionId) {
-        if (auth.validateSession(sessionId).isEmpty()) {
-            return unauthorized();
-        }
         return ResponseEntity.ok(attachment.findFileByName(fileName));
     }
+
+    @RequiresSession
     @GetMapping(value = "/findFileByAttachmentId/{attachmentId}")
     public ResponseEntity<?> findFileByAttachmentId(@PathVariable("attachmentId") Long id,
                                                     @RequestParam String sessionId) {
-        if (auth.validateSession(sessionId).isEmpty()) {
-            return unauthorized();
-        }
         return ResponseEntity.ok(attachment.findFileByAttachmentId(id));
     }
 
+    @RequiresSession
     @GetMapping(value = "/findFileByMessageId/{messageId}")
     public ResponseEntity<?> findFileByMessageId(@PathVariable("messageId") Long id,
                                                  @RequestParam String sessionId) {
-        if (auth.validateSession(sessionId).isEmpty()) {
-            return unauthorized();
-        }
         return ResponseEntity.ok(attachment.findFileByMessageId(id));
     }
 
+    @RequiresSession
     @GetMapping(value = "/findFileByUploaderId/{uploaderId}")
     public ResponseEntity<?> findFileByUploaderId(@PathVariable("uploaderId") int id,
                                                   @RequestParam String sessionId) {
-        if (auth.validateSession(sessionId).isEmpty()) {
-            return unauthorized();
-        }
         return ResponseEntity.ok(attachment.findFileByUploaderId(id));
     }
 
-    private ResponseEntity<ErrorResponse> unauthorized() {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ErrorResponse("Session invalid or expired"));
-    }
-
-    @PostMapping(value= "/fileUpload/{conversationId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresSession
+    @PostMapping(value = "/fileUpload/{conversationId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> sendAttachment(
             @PathVariable("conversationId") int conversationId,
-            @ModelAttribute @Valid Dtos.SendAttachmentRequest req){
-        Optional<Integer> userId = auth.validateSession(req.sessionId());
-        if (userId.isEmpty()) {
-            return unauthorized();
-        }
+            @ModelAttribute @Valid Dtos.SendAttachmentRequest req) {
         if (req.file() == null || req.file().isEmpty()) {
             throw new IllegalArgumentException("Choose a file to upload");
         }
@@ -103,30 +82,27 @@ public class AttachmentController {
         if (mimeType == null) {
             mimeType = "application/octet-stream";
         }
-        Long messageId = chat.sendAttachment(conversationId, userId.get(), fileName);
+        int userId = SessionContext.userId();
+        Long messageId = chat.sendAttachment(conversationId, userId, fileName);
 
         try {
-            attachment.sendAttachment(messageId, userId.get(), fileName, mimeType, fileSize, req.file());
+            attachment.sendAttachment(messageId, userId, fileName, mimeType, fileSize, req.file());
         } catch (RuntimeException e) {
             try {
-                chat.hideMessage(conversationId, messageId, userId.get());
+                chat.hideMessage(conversationId, messageId, userId);
             } catch (RuntimeException ignored) {
             }
             throw e;
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new Dtos.MessageIdResponse(messageId));
-
     }
 
+    @RequiresSession
     @PostMapping(value = "/filedownload/{conversationId}")
     public ResponseEntity<?> fileDownload(@RequestBody Dtos.FindFileRequest req,
                                           @PathVariable("conversationId") int conversationId) {
-        Optional<Integer> userId = auth.validateSession(req.sessionId());
-        if (userId.isEmpty()) {
-            return unauthorized();
-        }
-        chat.requireParticipant(conversationId, userId.get());
+        chat.requireParticipant(conversationId, SessionContext.userId());
         Dtos.DownloadResult downloadResult = attachment.downloadFile(req.searchType(), req.input());
         MediaType fileType = MediaType.APPLICATION_OCTET_STREAM;
         if (downloadResult.mimeType() != null && !downloadResult.mimeType().isBlank()) {
@@ -144,14 +120,11 @@ public class AttachmentController {
                 .body(downloadResult.resource());
     }
 
+    @RequiresSession
     @DeleteMapping("/fileDeletion/{attachmentId}")
     public ResponseEntity<?> fileDeletion(@RequestParam String sessionId,
                                           @PathVariable("attachmentId") Long attachmentId) {
-        Optional<Integer> userId = auth.validateSession(sessionId);
-        if (userId.isEmpty()) {
-            return unauthorized();
-        }
-        attachment.fileDelete(attachmentId, userId.get());
+        attachment.fileDelete(attachmentId, SessionContext.userId());
         return ResponseEntity.noContent().build();
     }
 }
