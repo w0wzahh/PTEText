@@ -1,18 +1,49 @@
 package com.ptetext.model;
 
-import java.sql.Timestamp;
+public class Contact {
+    private int ownerId;
+    private int contactId;
+    private String nickname;
+    private String username;
 
-/** One row of someone's friends list (ptetext_users.contacts). */
-public record Contact(
-        int ownerId,
-        int contactId,
-        String contactUsername,
-        String contactDisplayName,
-        String nickname,
-        Timestamp addedAt) {
+    public Contact() {}
 
-    /** What the owner sees: nickname if set, else the display name. */
-    public String label() {
-        return nickname != null ? nickname : contactDisplayName;
+    public Contact(int ownerId, int contactId, String nickname, String username) {
+        this.ownerId = ownerId;
+        this.contactId = contactId;
+        this.nickname = nickname;
+        this.username = username;
+    }
+
+    public int getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(int ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public int getContactId() {
+        return contactId;
+    }
+
+    public void setContactId(int contactId) {
+        this.contactId = contactId;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 }

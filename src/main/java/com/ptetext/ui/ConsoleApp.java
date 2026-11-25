@@ -1,9 +1,11 @@
 package com.ptetext.ui;
 
 import com.ptetext.config.DatabaseConfig;
+import com.ptetext.dao.ContactDao;
 import com.ptetext.dao.UserDao;
 import com.ptetext.db.ConnectionFactory;
 import com.ptetext.model.User;
+
 
 import java.sql.SQLException;
 import java.util.List;
@@ -22,14 +24,15 @@ public class ConsoleApp {
 
     private final Scanner scanner = new Scanner(System.in);
 
-    private final ConnectionFactory factory;
+private final ConnectionFactory factory;
     private final UserDao userDao;
-    // TODO(team): construct your DAOs/services here as they get built
+    private final ContactDao contactDao;
 
     public ConsoleApp() {
         DatabaseConfig config = DatabaseConfig.load();
         this.factory = new ConnectionFactory(config);
         this.userDao = new UserDao(factory);
+        this.contactDao = new ContactDao(factory);
     }
 
     public void run() {
@@ -97,4 +100,5 @@ public class ConsoleApp {
         System.out.println("Database error: " + e.getMessage());
         System.out.println("Is XAMPP MySQL running? See docs/04-setup-guide.md.");
     }
+    
 }
