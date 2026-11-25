@@ -76,4 +76,11 @@ public final class Dtos {
     public record FindFileRequest(String searchType, String input, String sessionId) {}
 
     public record DownloadResult(Resource resource, String originalName, String mimeType, Long sizeBytes, Long attachmentId) {}
+
+    public record AddContactRequest(String sessionId, String username, String nickname) {
+    }
+
+    public record ContactDto(Integer userId, String username, String displayName,
+                             String nickname, boolean favorite) {
+    }
 }

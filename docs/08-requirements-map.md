@@ -26,6 +26,7 @@ Full column details: [03-database-schema.md](03-database-schema.md)
 |-------|--------|------|--------|--------|
 | users | `UserRepository.registerUser` (@Procedure) | `findAll` / `findById` / `searchUsers` / `findCredentialsByUsername` | `updateDisplayName` / `updateCredentials` / `updateLastSeen` | `deleteById` |
 | sessions | `SessionRepository.openSession` (@Procedure) | `findValidUserId` / `countActiveSessions` | `invalidate` | `cleanupExpired` (@Procedure) |
+| `contacts` | `POST /api/contacts` (upserts nickname) | `GET /api/contacts` | `POST /api/contacts` (re-add updates nickname) | `DELETE /api/contacts/{userId}` |
 | activity_log | `AuditLogger.log` (StoredProcedureQuery -> sp_log_action) | `listRecent` *(issue #14)* | - | - |
 | others | assigned per-section in GitHub Issues #11–#14 | | | |
 
@@ -63,7 +64,7 @@ controllers.
 
 Also already in place:
 
-- Audit logging of every action to `ptetext_system.activity_log` (`REGISTER`, `LOGIN`, `LOGIN_FAILED`, `LOGIN_LOCKED`, `LOGOUT`, `ATTACHMENT_ADDED`, `ATTACHMENT_DELETED`, ...)
+- Audit logging of every action to `ptetext_system.activity_log` (`REGISTER`, `LOGIN`, `LOGIN_FAILED`, `LOGIN_LOCKED`, `LOGOUT`, `CONTACT_ADDED`, `ATTACHMENT_ADDED`, `ATTACHMENT_DELETED`, ...)
 - Login brute-force throttle: `service/LoginThrottle.java`
 - BCrypt/PBKDF2 password hashing with transparent legacy upgrades: `util/PasswordHasher.java`
 
